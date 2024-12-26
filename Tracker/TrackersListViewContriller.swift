@@ -1,6 +1,10 @@
 import UIKit
 
 final class TrackersListViewContriller: UIViewController {
+    
+    private var categories: [Category] = []
+    private var completedTrackers: [Record] = []
+    
     private lazy var emptyImage: UIImageView = {
         let emptyImage = UIImageView(image: UIImage(named: "ListEmpty"))
         emptyImage.contentMode = .scaleAspectFit

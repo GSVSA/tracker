@@ -22,7 +22,7 @@ final class StatisticViewController: UIViewController {
         setupConstraints()
     }
     
-    func configureNavBar() {      
+    func configureNavBar() {
         navigationItem.title = "Статистика"
         navigationController?.navigationBar.prefersLargeTitles = true
     }
