@@ -26,7 +26,7 @@
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-                        <color key="backgroundColor" name="YP Blue"/>
+                        <color key="backgroundColor" name="theme/blue"/>
                         <constraints>
                             <constraint firstItem="0Ew-Ux-Y1H" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="YpN-Cc-HA1"/>
                             <constraint firstItem="0Ew-Ux-Y1H" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="12.666666666666686" id="gDu-Dz-KPP"/>
@@ -40,7 +40,7 @@
     </scenes>
     <resources>
         <image name="Logo" width="75" height="78"/>
-        <namedColor name="YP Blue">
+        <namedColor name="theme/blue">
             <color red="0.21568627450980393" green="0.44705882352941179" blue="0.90588235294117647" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
     </resources>
