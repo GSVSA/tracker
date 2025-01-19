@@ -38,7 +38,7 @@ final class CategoryViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .Theme.background
         configureNavBar()
-        tableView.configure(items: categories, cell: SettingsCell.self, reuseIdentifier: "categorySettingsCell")
+        tableView.configure(items: categories, cell: SettingsCell.self)
         tableView.delegate = self
         setEmptyBlockVisible(categories.isEmpty)
         setupConstraints()

@@ -82,7 +82,7 @@ final class EventSettingsViewController: UIViewController {
 
         configureNavBar()
         view.backgroundColor = .Theme.background
-        tableView.configure(items: cellConfigs, cell: SettingsCell.self, reuseIdentifier: "settingsCell")
+        tableView.configure(items: cellConfigs, cell: SettingsCell.self)
         tableView.delegate = self
         tableView.setCellConfig(.init(accessoryType: .disclosureIndicator))
         createButton.isDisabled = true
@@ -137,7 +137,9 @@ final class EventSettingsViewController: UIViewController {
         if isIrregular {
             cellConfigs = [categoryConfig]
         } else {
-            let scheduleSubtitle = selectedDays.map { $0.shortTranslated }.joined(separator: ", ")
+            let scheduleSubtitle = selectedDays.count == Weekday.allCases.count
+                ? "Каждый день"
+                : selectedDays.map { $0.shortTranslated }.joined(separator: ", ")
             let scheduleConfig = EventSettingsCellModel(
                 title: scheduleCellConfig.title,
                 subtitle: scheduleSubtitle,

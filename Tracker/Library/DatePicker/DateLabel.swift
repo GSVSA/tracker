@@ -7,6 +7,13 @@ final class DateLabel: UILabel {
         }
     }
 
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        let width = size.width + textInsets.left + textInsets.right
+        let height = size.height + textInsets.top + textInsets.bottom
+        return CGSize(width: width, height: height)
+    }
+
     private var dateFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd.MM.yy"
@@ -28,13 +35,6 @@ final class DateLabel: UILabel {
         super.drawText(in: insetRect)
     }
 
-    override var intrinsicContentSize: CGSize {
-        let size = super.intrinsicContentSize
-        let width = size.width + textInsets.left + textInsets.right
-        let height = size.height + textInsets.top + textInsets.bottom
-        return CGSize(width: width, height: height)
-    }
-
     override func sizeThatFits(_ size: CGSize) -> CGSize {
         let fittingSize = super.sizeThatFits(size)
         let width = fittingSize.width + textInsets.left + textInsets.right
@@ -43,18 +43,18 @@ final class DateLabel: UILabel {
     }
 
     func update(with date: Date) {
-        self.text = dateFormatter.string(from: date)
+        text = dateFormatter.string(from: date)
     }
 
     private func setupLabel() {
-        self.textAlignment = .center
+        textAlignment = .center
         let currentTheme = UIScreen.main.traitCollection.userInterfaceStyle
-        self.textColor = currentTheme == .light
+        textColor = currentTheme == .light
             ? .Theme.contrast
             : .Theme.background
-        self.backgroundColor = .Theme.datePickerLabel
-        self.layer.cornerRadius = 8
-        self.layer.masksToBounds = true
-        self.font = UIFont.systemFont(ofSize: 17)
+        backgroundColor = .Theme.datePickerLabel
+        layer.cornerRadius = 8
+        layer.masksToBounds = true
+        font = UIFont.systemFont(ofSize: 17)
     }
 }

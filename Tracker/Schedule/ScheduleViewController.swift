@@ -38,7 +38,7 @@ final class ScheduleViewController: UIViewController {
             ScheduleCellModel(title: day.translated, isSelected: selectedDays[day])
         }
         tableView.setCellConfig(.init(isSwitcher: true))
-        tableView.configure(items: tableItems, cell: SettingsCell.self, reuseIdentifier: "scheduleSettingsCell")
+        tableView.configure(items: tableItems, cell: SettingsCell.self)
         tableView.settingsCellDelegate = self
 
         setupConstraints()

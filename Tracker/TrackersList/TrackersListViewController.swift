@@ -16,6 +16,13 @@ final class TrackersListViewController: UIViewController {
         return formatter
     }()
 
+    private let scheduleDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.dateFormat = "EEEE"
+        return formatter
+    }()
+
     private lazy var emptyBlock: EmptyBlock = {
         let block = EmptyBlock()
         block.setLabel("Что будем отслеживать?")
@@ -29,12 +36,15 @@ final class TrackersListViewController: UIViewController {
         setupConstraints()
         
         collectionView.register(TrackersListCell.self, forCellWithReuseIdentifier: TrackersListCell.reuseIdentifier)
-        collectionView.register(CollectionHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: CollectionHeader.reuseIdentifier)
+        collectionView.register(
+            CollectionHeader.self,
+            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier: CollectionHeader.reuseIdentifier
+        )
         collectionView.backgroundColor = .Theme.background
         collectionView.dataSource = self
         collectionView.delegate = self
-        
-        setEmptyBlockVisible(categories.isEmpty)
+
         filterCategoriesByDate()
     }
     
@@ -83,12 +93,14 @@ final class TrackersListViewController: UIViewController {
         emptyBlock.isHidden = !isVisible
     }
 
+    private func updateTable() {
+        setEmptyBlockVisible(categories.isEmpty)
+        collectionView.reloadData()
+    }
+
     private func filterCategoriesByDate() {
         guard let date = filters.date else { return }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ru_RU")
-        formatter.dateFormat = "EEEE"
-        let weekdayName = formatter.string(from: date).lowercased()
+        let weekdayName = scheduleDateFormatter.string(from: date).lowercased()
 
         let filteredCategories = mockedCategories.map { category in
             let trackers = category.trackers.filter { tracker in
@@ -97,11 +109,10 @@ final class TrackersListViewController: UIViewController {
             return Category(title: category.title, trackers: trackers)
         }.filter { !$0.trackers.isEmpty }
         categories = filteredCategories
-        collectionView.reloadData()
+        updateTable()
     }
 
     private func isFutureDate(_ dateString: String) -> Bool {
-        let dateFormatter = dateFormatter
         guard let inputDate = dateFormatter.date(from: dateString) else {
             print("Невозможно преобразовать строку в дату")
             return false
