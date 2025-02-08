@@ -29,6 +29,7 @@ final class ValidationTextFieldWrapper: UIView {
     init(_ textField: UITextField) {
         super.init(frame: .zero)
         textField.delegate = self
+        textField.addTarget(self, action: #selector(didValueChanged), for: .editingChanged)
         self.textField = textField
     }
 
@@ -88,18 +89,16 @@ final class ValidationTextFieldWrapper: UIView {
             delegate?.onError(hasError)
         }
     }
+
+    @objc
+    private func didValueChanged(_ sender: UITextField) {
+        updateErrorState(validate(sender.text ?? ""))
+    }
 }
 
 // MARK: - extensions
 
 extension ValidationTextFieldWrapper: UITextFieldDelegate {
-    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let currentText = textField.text ?? ""
-        let updatedText = (currentText as NSString).replacingCharacters(in: range, with: string)
-        updateErrorState(validate(updatedText))
-        return true
-    }
-
     func textFieldShouldClear(_ textField: UITextField) -> Bool {
         updateErrorState(validate(""))
         return true

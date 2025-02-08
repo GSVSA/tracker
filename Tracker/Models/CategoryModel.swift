@@ -1,6 +1,9 @@
 import Foundation
 
-struct Category {
+protocol CategoryProtocol {
+    var title: String { get }
+}
+
+struct Category: CategoryProtocol {
     let title: String
-    let trackers: [Tracker]
 }

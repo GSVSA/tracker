@@ -1,7 +1,16 @@
 import UIKit
 
+protocol NewCategoryViewControllerDelegate: AnyObject {
+    func didCreateNewCategory(withName name: String, at indexPath: IndexPath?)
+}
+
 final class NewCategoryViewController: UIViewController {
-    private lazy var nameInput: UIView = {
+    weak var delegate: NewCategoryViewControllerDelegate?
+
+    private var categoryTitle: String?
+    private var indexPath: IndexPath?
+
+    private lazy var nameInput: ValidationTextFieldWrapper = {
         let textField = TextField()
         textField.placeholder = "Введите название категории"
         let errorWrapper = ValidationTextFieldWrapper(textField)
@@ -28,8 +37,19 @@ final class NewCategoryViewController: UIViewController {
         ]
     }
 
+    func setCategoryTitle(_ title: String?) {
+        categoryTitle = title
+    }
+
+    func setIndexPath(_ indexPath: IndexPath?) {
+        self.indexPath = indexPath
+    }
+
     @objc
     private func didDoneTapped() {
+        guard let categoryTitle = nameInput.textField?.text else { return }
+        delegate?.didCreateNewCategory(withName: categoryTitle, at: indexPath)
+        setCategoryTitle(categoryTitle)
         dismiss(animated: true)
     }
 
@@ -53,7 +73,7 @@ final class NewCategoryViewController: UIViewController {
     }
 }
 
-// MARK: - extensions
+// MARK: - ValidationTextFieldWrapperDelegate
 
 extension NewCategoryViewController: ValidationTextFieldWrapperDelegate {
     func textFieldShouldReturn(_ textField: UITextField) {

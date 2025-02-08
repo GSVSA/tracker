@@ -1,25 +1,26 @@
 import UIKit
 
-struct CategoryCellModel: SettingsTableItem {
-    let title: String
-    let subtitle: String?
-    let isSelected: Bool?
-
-    init(title: String, isSelected: Bool? = false) {
-        self.title = title
-        self.subtitle = nil
-        self.isSelected = isSelected
-    }
-}
-
 final class CategoryViewController: UIViewController {
     var delegate: CategoryViewControllerDelegate?
 
-    private var categories: [CategoryCellModel] = []
-    private var selectedCategory: String?
-
     private lazy var tableView = SettingsTable()
     private var tableHeightConstraint: NSLayoutConstraint!
+
+    private lazy var categoryProvider: CategoryProviderProtocol? = {
+        let store = TrackerCategoryStore()
+        do {
+            try categoryProvider = CategoryProvider(store)
+            categoryProvider?.delegate = self
+            return categoryProvider
+        } catch {
+            return nil
+        }
+    }()
+
+    private lazy var tableProvider: CategoryTableProvider = {
+        let provider = CategoryTableProvider(categoryProvider: categoryProvider)
+        return provider
+    }()
 
     private lazy var emptyBlock: EmptyBlock = {
         let block = EmptyBlock()
@@ -38,26 +39,29 @@ final class CategoryViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .Theme.background
         configureNavBar()
-        tableView.configure(items: categories, cell: SettingsCell.self)
+        tableView.configure(provider: tableProvider, cell: SettingsCell.self)
         tableView.delegate = self
-        setEmptyBlockVisible(categories.isEmpty)
+        setEmptyBlockVisible(tableProvider.numberOfSections == 0)
         setupConstraints()
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        tableHeightConstraint.constant = tableView.contentSize.height
+        reloadHeightConstraints()
     }
 
-    func setCategories(_ categories: [String], selected: String?) {
-        self.categories = categories.map {
-            .init(title: $0, isSelected: selected == $0)
-        }
+    func setSelectedCategory(_ selected: String?) {
+        tableProvider.setSelectedCategory(selected)
+    }
+
+    private func reloadHeightConstraints() {
+        tableHeightConstraint.constant = tableView.contentSize.height
     }
 
     @objc
     private func didAddCategoryTapped() {
         let viewController = NewCategoryViewController()
+        viewController.delegate = self
         let navigationController = UINavigationController(rootViewController: viewController)
         present(navigationController, animated: true)
     }
@@ -96,25 +100,22 @@ final class CategoryViewController: UIViewController {
             emptyBlock.bottomAnchor.constraint(equalTo: createCategoryButton.topAnchor),
         ])
     }
-
-    private func updateTable() {
-        setCategories(categories.map({ $0.title }), selected: selectedCategory)
-        tableView.updateItems(categories)
-    }
 }
 
-// MARK: - extensions
+// MARK: - UITableViewDelegate
 
 extension CategoryViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let config = categories[indexPath.row]
-        selectedCategory = config.title
-        delegate?.didComplete(with: selectedCategory)
-        updateTable()
+        let category = tableProvider.find(at: indexPath)
+        delegate?.didComplete(with: category?.title)
+        setSelectedCategory(category?.title)
         dismiss(animated: true)
     }
 
-    func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+    func tableView(_ tableView: UITableView,
+                   contextMenuConfigurationForRowAt indexPath: IndexPath,
+                   point: CGPoint
+    ) -> UIContextMenuConfiguration? {
         return UIContextMenuConfiguration(actionProvider: { _ in
             return UIMenu(children: [
                 UIAction(title: "Редактировать") { [weak self] _ in
@@ -128,9 +129,43 @@ extension CategoryViewController: UITableViewDelegate {
     }
 
     private func edit(indexPath: IndexPath) {
+        guard let categoryTitle = tableProvider.find(at: indexPath)?.title else { return }
 
+        let viewController = NewCategoryViewController()
+        viewController.delegate = self
+        viewController.setCategoryTitle(categoryTitle)
+        viewController.setIndexPath(indexPath)
+        let navigationController = UINavigationController(rootViewController: viewController)
+        present(navigationController, animated: true)
     }
 
     private func delete(indexPath: IndexPath) {
+        categoryProvider?.deleteRecord(at: indexPath)
+    }
+}
+
+// MARK: - NewCategoryViewControllerDelegate
+
+extension CategoryViewController: NewCategoryViewControllerDelegate {
+    func didCreateNewCategory(withName name: String, at indexPath: IndexPath?) {
+        let newCategory = Category(title: name)
+        guard let indexPath else {
+            categoryProvider?.addRecord(newCategory)
+            return
+        }
+        categoryProvider?.updateRecord(at: indexPath, newCategory)
+    }
+}
+
+// MARK: - CategoryProviderDelegate
+
+extension CategoryViewController: CategoryProviderDelegate {
+    func didUpdate(_ update: CategoryStoreUpdate) {
+        tableView.performBatchUpdates {
+            tableView.insertRows(at: Array(update.insertedIndexes), with: .automatic)
+            tableView.reloadRows(at: Array(update.updatedIndexes), with: .automatic)
+            tableView.deleteRows(at: Array(update.deletedIndexes), with: .fade)
+        }
+        reloadHeightConstraints()
     }
 }

@@ -1,6 +1,14 @@
 import UIKit
 
+protocol EmojiCollectionDelegate: AnyObject {
+    func emojiCollection(_ collection: EmojiCollection, didSelectEmoji emoji: String?)
+}
+
 final class EmojiCollection: UICollectionView {
+    var selectedEmoji: String?
+
+    weak var selectionDelegate: EmojiCollectionDelegate?
+
     private let emojis = [
         "🙂", "😻", "🌺", "🐶", "❤️", "😱",
         "😇", "😡", "🥶", "🤔", "🙌", "🍔",
@@ -13,7 +21,9 @@ final class EmojiCollection: UICollectionView {
         backgroundColor = .none
 
         register(EmojiCollectionCell.self, forCellWithReuseIdentifier: EmojiCollectionCell.reuseIdentifier)
-        register(CollectionHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: CollectionHeader.reuseIdentifier)
+        register(CollectionHeader.self,
+                 forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+                 withReuseIdentifier: CollectionHeader.reuseIdentifier)
         dataSource = self
         delegate = self
         allowsMultipleSelection = false
@@ -24,7 +34,7 @@ final class EmojiCollection: UICollectionView {
     }
 }
 
-// MARK: - extensions
+// MARK: - UICollectionViewDelegateFlowLayout
 
 extension EmojiCollection: UICollectionViewDelegateFlowLayout {
     func collectionView(
@@ -64,6 +74,8 @@ extension EmojiCollection: UICollectionViewDelegateFlowLayout {
     }
 }
 
+// MARK: - UICollectionViewDataSource
+
 extension EmojiCollection: UICollectionViewDataSource {
     // количество ячеек в секции
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -80,13 +92,18 @@ extension EmojiCollection: UICollectionViewDataSource {
         return emojiCollectionCell
     }
 
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+    func collectionView(_ collectionView: UICollectionView,
+                        viewForSupplementaryElementOfKind kind: String,
+                        at indexPath: IndexPath
+    ) -> UICollectionReusableView {
         if kind != UICollectionView.elementKindSectionHeader {
             return UICollectionReusableView()
         }
 
         guard
-            let collectionHeader = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: CollectionHeader.reuseIdentifier, for: indexPath) as? CollectionHeader
+            let collectionHeader = collectionView.dequeueReusableSupplementaryView(ofKind: kind,
+                                                                                   withReuseIdentifier: CollectionHeader.reuseIdentifier,
+                                                                                   for: indexPath) as? CollectionHeader
         else {
             return UICollectionReusableView()
         }
@@ -96,18 +113,17 @@ extension EmojiCollection: UICollectionViewDataSource {
 
     private func configCell(_ cell: EmojiCollectionCell, for indexPath: IndexPath) {
         let emoji = emojis[indexPath.item]
-        cell.setLabel(emoji)
+        let isSelected = emoji == selectedEmoji
+        cell.setup(.init(selected: isSelected, emoji: emoji))
     }
 }
 
+// MARK: - UICollectionViewDelegate
+
 extension EmojiCollection: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let cell = collectionView.cellForItem(at: indexPath) as? EmojiCollectionCell
-        cell?.setSelected(true)
-    }
-
-    func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-        let cell = collectionView.cellForItem(at: indexPath) as? EmojiCollectionCell
-        cell?.setSelected(false)
+        selectedEmoji = emojis[indexPath.item]
+        collectionView.reloadData()
+        selectionDelegate?.emojiCollection(self, didSelectEmoji: selectedEmoji)
     }
 }

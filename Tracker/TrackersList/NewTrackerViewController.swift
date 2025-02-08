@@ -1,6 +1,12 @@
 import UIKit
 
+protocol NewTrackerViewControllerDelegate: AnyObject {
+    func didAddTracker(_ vc: NewTrackerViewController, tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol)
+}
+
 final class NewTrackerViewController: UIViewController {
+    weak var delegate: NewTrackerViewControllerDelegate?
+
     private lazy var habitButton: Button = {
         let button = Button()
         button.setTitle("Привычка", for: .normal)
@@ -69,10 +75,12 @@ final class NewTrackerViewController: UIViewController {
     }
 }
 
-// MARK: - extensions
+// MARK: - EventSettingsViewControllerDelegate
 
 extension NewTrackerViewController: EventSettingsViewControllerDelegate {
-    func didComplete() {
+    func didComplete(_ vc: EventSettingsViewController, tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol) {
+        delegate?.didAddTracker(self, tracker: tracker, selectedDays: selectedDays, category: category)
+        vc.dismiss(animated: true)
         dismiss(animated: true)
     }
 }
