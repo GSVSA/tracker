@@ -1,5 +1,10 @@
 import UIKit
 
+struct EmojiCollectionCellModel {
+    let selected: Bool
+    let emoji: String
+}
+
 final class EmojiCollectionCell: UICollectionViewCell {
     static let reuseIdentifier = "EmojiCell"
 
@@ -29,11 +34,16 @@ final class EmojiCollectionCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func setLabel(_ text: String) {
+    func setup(_ info: EmojiCollectionCellModel) {
+        setLabel(info.emoji)
+        setSelected(info.selected)
+    }
+
+    private func setLabel(_ text: String) {
         label.text = text
     }
 
-    func setSelected(_ selected: Bool) {
+    private func setSelected(_ selected: Bool) {
         contentView.backgroundColor = selected ? .Theme.selection : .none
     }
 }

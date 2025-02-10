@@ -162,7 +162,7 @@ final class TrackersListCell: UICollectionViewCell {
     @objc
     private func didTapCounter() {
         guard let id else { return }
-        delegate?.didTapCounter(id: id)
+        delegate?.didTapCounter(at: id)
     }
 }
 

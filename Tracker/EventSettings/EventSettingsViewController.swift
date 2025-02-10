@@ -1,31 +1,26 @@
 import UIKit
 
-struct EventSettingsCellModel: SettingsTableItem {
-    let title: String
-    let subtitle: String?
-    let destination: UIViewController.Type
-    let isSelected: Bool?
-
-    init(title: String, subtitle: String? = nil, destination: UIViewController.Type) {
-        self.title = title
-        self.subtitle = subtitle
-        self.destination = destination
-        self.isSelected = false
-    }
-}
-
-private let categoryCellConfig = EventSettingsCellModel(title: "Категория", destination: CategoryViewController.self)
-private let scheduleCellConfig = EventSettingsCellModel(title: "Расписание", destination: ScheduleViewController.self)
-
 final class EventSettingsViewController: UIViewController {
     var delegate: EventSettingsViewControllerDelegate?
 
-    private var isIrregular: Bool = false
-    private var categories: [String] = mockedCategories.map { $0.title }
+    private var trackerName: String {
+        nameInput.textField?.text ?? ""
+    }
     private var selectedDays: [Weekday] = []
     private var selectedCategory: String?
+    private var hasEmpty: Bool {
+        let requiredFieldsEmpty: Bool = trackerName.count == 0
+            || selectedCategory == nil
+            || emojiCollection.selectedEmoji == nil
+            || colorsCollection.selectedColor == nil
 
-    private var cellConfigs: [EventSettingsCellModel] = [categoryCellConfig, scheduleCellConfig]
+        if tableProvider.isIrregular {
+            return requiredFieldsEmpty
+        }
+        return requiredFieldsEmpty || selectedDays.isEmpty
+    }
+
+    private var tableProvider = EventSettingsTableProvider()
 
     private var tableHeightConstraint: NSLayoutConstraint!
     private var emojiCollectionHeightConstraint: NSLayoutConstraint!
@@ -33,11 +28,16 @@ final class EventSettingsViewController: UIViewController {
 
     private lazy var contentView = UIView()
     private lazy var tableView = SettingsTable()
-    private lazy var emojiCollection = EmojiCollection(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
+    private lazy var emojiCollection: EmojiCollection = {
+        let collection = EmojiCollection(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
+        collection.selectionDelegate = self
+        return collection
+    }()
     private lazy var colorsCollection: ColorsCollection = {
         let layout = UICollectionViewFlowLayout()
         layout.estimatedItemSize = UICollectionViewFlowLayout.automaticSize
         let collection = ColorsCollection(frame: .zero, collectionViewLayout: layout)
+        collection.selectionDelegate = self
         return collection
     }()
 
@@ -47,7 +47,7 @@ final class EventSettingsViewController: UIViewController {
         return view
     }()
 
-    private lazy var nameInput: UIView = {
+    private lazy var nameInput: ValidationTextFieldWrapper = {
         let textField = TextField()
         textField.placeholder = "Введите название трекера"
         let errorWrapper = ValidationTextFieldWrapper(textField)
@@ -82,10 +82,9 @@ final class EventSettingsViewController: UIViewController {
 
         configureNavBar()
         view.backgroundColor = .Theme.background
-        tableView.configure(items: cellConfigs, cell: SettingsCell.self)
+        tableView.configure(provider: tableProvider, cell: SettingsCell.self)
         tableView.delegate = self
-        tableView.setCellConfig(.init(accessoryType: .disclosureIndicator))
-        createButton.isDisabled = true
+        updateCreateButtonState()
         setupConstraints()
     }
 
@@ -100,13 +99,15 @@ final class EventSettingsViewController: UIViewController {
     }
 
     func setIsIrregular(_ isIrregular: Bool) {
-        self.isIrregular = isIrregular
+        tableProvider.setIsIrregular(isIrregular)
         updateData()
         configureNavBar()
     }
 
     private func configureNavBar() {
-        navigationItem.title = isIrregular ? "Новое нерегулярное событие" : "Новая привычка"
+        navigationItem.title = tableProvider.isIrregular 
+            ? "Новое нерегулярное событие"
+            : "Новая привычка"
         navigationController?.navigationBar.titleTextAttributes = [
             .font: UIFont.systemFont(ofSize: 16, weight: .medium),
         ]
@@ -119,34 +120,40 @@ final class EventSettingsViewController: UIViewController {
 
     @objc
     private func didCreateTapped() {
-        dismiss(animated: true)
-        delegate?.didComplete()
+        guard let selectedCategory,
+              let selectedColor = colorsCollection.selectedColor,
+              let selectedEmoji = emojiCollection.selectedEmoji,
+              let trackerName = nameInput.textField?.text
+        else { return }
+
+        let tracker = Tracker(
+            title: trackerName,
+            color: selectedColor,
+            emoji: selectedEmoji
+        )
+
+        let category = Category(title: selectedCategory)
+        delegate?.didComplete(self, tracker: tracker, selectedDays: selectedDays, category: category)
+    }
+
+    private func updateCreateButtonState() {
+        createButton.isDisabled = hasEmpty
     }
 
     private func updateTable() {
         updateData()
-        tableView.updateItems(cellConfigs)
+        tableView.reloadData()
+        updateCreateButtonState()
     }
 
     private func updateData() {
-        let categoryConfig = EventSettingsCellModel(
-            title: categoryCellConfig.title,
-            subtitle: selectedCategory,
-            destination: categoryCellConfig.destination
+        let scheduleSubtitle = selectedDays.count == Weekday.allCases.count
+            ? "Каждый день"
+            : selectedDays.map { $0.shortTranslated }.joined(separator: ", ")
+        tableProvider.updateData(
+            selectedCategory: selectedCategory,
+            selectedSchedule: scheduleSubtitle
         )
-        if isIrregular {
-            cellConfigs = [categoryConfig]
-        } else {
-            let scheduleSubtitle = selectedDays.count == Weekday.allCases.count
-                ? "Каждый день"
-                : selectedDays.map { $0.shortTranslated }.joined(separator: ", ")
-            let scheduleConfig = EventSettingsCellModel(
-                title: scheduleCellConfig.title,
-                subtitle: scheduleSubtitle,
-                destination: scheduleCellConfig.destination
-            )
-            cellConfigs = [categoryConfig, scheduleConfig]
-        }
     }
 
     private func setupConstraints() {
@@ -205,11 +212,11 @@ final class EventSettingsViewController: UIViewController {
     }
 }
 
-// MARK: - extensions
+// MARK: - UITableViewDelegate
 
 extension EventSettingsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let config = cellConfigs[indexPath.row]
+        let config = tableProvider.cellConfigs[indexPath.item]
         let viewController = config.destination.init()
 
         if let scheduleVC = viewController as? ScheduleViewController {
@@ -217,13 +224,15 @@ extension EventSettingsViewController: UITableViewDelegate {
             scheduleVC.setSelectedDays(selectedDays)
         } else if let categoryVC = viewController as? CategoryViewController {
             categoryVC.delegate = self
-            categoryVC.setCategories(categories, selected: selectedCategory)
+            categoryVC.setSelectedCategory(selectedCategory)
         }
 
         let navigationController = UINavigationController(rootViewController: viewController)
         present(navigationController, animated: true)
     }
 }
+
+// MARK: - ScheduleViewControllerDelegate
 
 extension EventSettingsViewController: ScheduleViewControllerDelegate {
     func didComplete(with schedule: [Weekday]) {
@@ -232,6 +241,8 @@ extension EventSettingsViewController: ScheduleViewControllerDelegate {
     }
 }
 
+// MARK: - CategoryViewControllerDelegate
+
 extension EventSettingsViewController: CategoryViewControllerDelegate {
     func didComplete(with category: String?) {
         selectedCategory = category
@@ -239,12 +250,30 @@ extension EventSettingsViewController: CategoryViewControllerDelegate {
     }
 }
 
+// MARK: - ValidationTextFieldWrapperDelegate
+
 extension EventSettingsViewController: ValidationTextFieldWrapperDelegate {
     func textFieldShouldReturn(_ textField: UITextField) {
         textField.resignFirstResponder()
     }
 
     func onError(_ hasError: Bool) {
-        createButton.isDisabled = hasError
+        updateCreateButtonState()
+    }
+}
+
+// MARK: - EmojiCollectionDelegate
+
+extension EventSettingsViewController: EmojiCollectionDelegate {
+    func emojiCollection(_ collection: EmojiCollection, didSelectEmoji emoji: String?) {
+        updateCreateButtonState()
+    }
+}
+
+// MARK: - ColorsCollectionDelegate
+
+extension EventSettingsViewController: ColorsCollectionDelegate {
+    func colorsCollection(_ collection: ColorsCollection, didSelectColor color: UIColor?) {
+        updateCreateButtonState()
     }
 }

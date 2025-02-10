@@ -1,23 +1,11 @@
 import UIKit
 
-struct ScheduleCellModel: SettingsTableItem {
-    let title: String
-    let subtitle: String?
-    let isSelected: Bool?
-
-    init(title: String, isSelected: Bool?) {
-        self.title = title
-        self.subtitle = nil
-        self.isSelected = isSelected
-    }
-}
-
 final class ScheduleViewController: UIViewController {
     var delegate: ScheduleViewControllerDelegate?
 
-    private var selectedDays: [Weekday: Bool] = [:]
-
     private var tableHeightConstraint: NSLayoutConstraint!
+
+    private lazy var tableProvider = ScheduleTableProvider()
 
     private lazy var tableView = SettingsTable()
 
@@ -34,11 +22,7 @@ final class ScheduleViewController: UIViewController {
         view.backgroundColor = .Theme.background
         configureNavBar()
 
-        let tableItems = Weekday.allCases.map { day in
-            ScheduleCellModel(title: day.translated, isSelected: selectedDays[day])
-        }
-        tableView.setCellConfig(.init(isSwitcher: true))
-        tableView.configure(items: tableItems, cell: SettingsCell.self)
+        tableView.configure(provider: tableProvider, cell: SettingsCell.self)
         tableView.settingsCellDelegate = self
 
         setupConstraints()
@@ -50,14 +34,12 @@ final class ScheduleViewController: UIViewController {
     }
 
     func setSelectedDays(_ days: [Weekday]) {
-        selectedDays = days.reduce(into: [:]) { result, day in
-            result[day] = true
-        }
+        tableProvider.setSelectedDays(days)
     }
 
     @objc
     private func didDoneTapped() {
-        let selectedDays = selectedDays
+        let selectedDays = tableProvider.selectedDays
             .filter { $0.value }
             .map { $0.key }
             .sorted {
@@ -98,8 +80,10 @@ final class ScheduleViewController: UIViewController {
     }
 }
 
+// MARK: - SettingsCellDelegate
+
 extension ScheduleViewController: SettingsCellDelegate {
     func didChangeValue(_ sender: UISwitch, for indexPath: IndexPath, isOn: Bool) {
-        selectedDays.updateValue(isOn, forKey: Weekday.allCases[indexPath.row])
+        tableProvider.updateValue(day: Weekday.allCases[indexPath.item], value: isOn)
     }
 }

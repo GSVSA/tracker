@@ -1,5 +1,5 @@
 import Foundation
 
 protocol TrackTrackerListCellDelegate: AnyObject {
-    func didTapCounter(id trackerId: UUID)
+    func didTapCounter(at id: UUID)
 }

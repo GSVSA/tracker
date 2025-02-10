@@ -3,7 +3,6 @@ import UIKit
 final class TabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.tabBar.barTintColor = .Theme.accent
         self.tabBar.backgroundColor = .Theme.background
         setupTabItems()
         setupTabBarBorder()

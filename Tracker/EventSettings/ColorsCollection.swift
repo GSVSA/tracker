@@ -1,6 +1,14 @@
 import UIKit
 
+protocol ColorsCollectionDelegate: AnyObject {
+    func colorsCollection(_ collection: ColorsCollection, didSelectColor color: UIColor?)
+}
+
 final class ColorsCollection: UICollectionView {
+    var selectedColor: UIColor?
+
+    weak var selectionDelegate: ColorsCollectionDelegate?
+
     private let colors: [UIColor] = [
         .Tracker._0, .Tracker._1, .Tracker._2,
         .Tracker._3, .Tracker._4, .Tracker._5,
@@ -16,7 +24,9 @@ final class ColorsCollection: UICollectionView {
         backgroundColor = .none
         
         register(ColorsCollectionCell.self, forCellWithReuseIdentifier: ColorsCollectionCell.reuseIdentifier)
-        register(CollectionHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: CollectionHeader.reuseIdentifier)
+        register(CollectionHeader.self,
+                 forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+                 withReuseIdentifier: CollectionHeader.reuseIdentifier)
         dataSource = self
         delegate = self
         allowsMultipleSelection = false
@@ -27,7 +37,7 @@ final class ColorsCollection: UICollectionView {
     }
 }
 
-// MARK: - extensions
+// MARK: - UICollectionViewDelegateFlowLayout
 
 extension ColorsCollection: UICollectionViewDelegateFlowLayout {
     func collectionView(
@@ -67,6 +77,8 @@ extension ColorsCollection: UICollectionViewDelegateFlowLayout {
     }
 }
 
+// MARK: - UICollectionViewDataSource
+
 extension ColorsCollection: UICollectionViewDataSource {
     // количество ячеек в секции
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -83,13 +95,21 @@ extension ColorsCollection: UICollectionViewDataSource {
         return colorsCollectionCell
     }
 
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+    func collectionView(
+        _ collectionView: UICollectionView,
+        viewForSupplementaryElementOfKind kind: String,
+        at indexPath: IndexPath
+    ) -> UICollectionReusableView {
         if kind != UICollectionView.elementKindSectionHeader {
             return UICollectionReusableView()
         }
 
         guard
-            let collectionHeader = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: CollectionHeader.reuseIdentifier, for: indexPath) as? CollectionHeader
+            let collectionHeader = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier: CollectionHeader.reuseIdentifier,
+                for: indexPath
+            ) as? CollectionHeader
         else {
             return UICollectionReusableView()
         }
@@ -99,19 +119,18 @@ extension ColorsCollection: UICollectionViewDataSource {
 
     private func configCell(_ cell: ColorsCollectionCell, for indexPath: IndexPath) {
         let color = colors[indexPath.item]
-        cell.setColor(color)
+        let isSelected = selectedColor == color
+        cell.setup(.init(selected: isSelected, color: color))
     }
 }
 
+// MARK: - UICollectionViewDelegate
+
 extension ColorsCollection: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let cell = collectionView.cellForItem(at: indexPath) as? ColorsCollectionCell
-        cell?.setSelected(true)
-    }
-
-    func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-        let cell = collectionView.cellForItem(at: indexPath) as? ColorsCollectionCell
-        cell?.setSelected(false)
+        selectedColor = colors[indexPath.item]
+        collectionView.reloadData()
+        selectionDelegate?.colorsCollection(self, didSelectColor: selectedColor)
     }
 }
 

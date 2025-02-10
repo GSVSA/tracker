@@ -16,13 +16,19 @@ protocol SettingsTableItem {
     var isSelected: Bool? { get }
 }
 
+protocol SettingsTableProvider {
+    var cellConfig: CellConfig? { get }
+    var numberOfSections: Int { get }
+    func numberOfRowsInSection(_ section: Int) -> Int
+    func find(at: IndexPath) -> SettingsTableItem?
+}
+
 final class SettingsTable: UITableView {
     weak var settingsCellDelegate: SettingsCellDelegate?
 
     private var reuseIdentifier: String = "SettingsCell"
     private var cell: SettingsCellProtocol?
-    private var items: [SettingsTableItem] = []
-    private var cellConfig: CellConfig?
+    private var provider: SettingsTableProvider?
 
     override init(frame: CGRect, style: UITableView.Style) {
         super.init(frame: frame, style: .insetGrouped)
@@ -43,19 +49,10 @@ final class SettingsTable: UITableView {
         setupConstraints()
     }
 
-    func configure(items: [SettingsTableItem], cell: SettingsCellProtocol.Type, reuseIdentifier: String? = nil) {
-        self.items = items
+    func configure(provider: SettingsTableProvider, cell: SettingsCellProtocol.Type, reuseIdentifier: String? = nil) {
+        self.provider = provider
         self.reuseIdentifier = reuseIdentifier ?? cell.reuseIdentifier
         register(cell, forCellReuseIdentifier: reuseIdentifier ?? cell.reuseIdentifier)
-    }
-
-    func updateItems(_ items: [SettingsTableItem]) {
-        self.items = items
-        reloadData()
-    }
-
-    func setCellConfig(_ config: CellConfig) {
-        cellConfig = config
     }
 
     private func setupConstraints() {
@@ -70,11 +67,15 @@ final class SettingsTable: UITableView {
     }
 }
 
-// MARK: - extensions
+// MARK: - UITableViewDataSource
 
 extension SettingsTable: UITableViewDataSource {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        provider?.numberOfSections ?? 0
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return items.count
+        provider?.numberOfRowsInSection(section) ?? 0
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -87,15 +88,15 @@ extension SettingsTable: UITableViewDataSource {
     }
 
     private func configCell(for cell: SettingsCellProtocol, with indexPath: IndexPath) {
-        let cellInfo = items[indexPath.row]
         cell.delegate = settingsCellDelegate
+        guard let cellInfo = provider?.find(at: indexPath) else { return }
         cell.setup(.init(
             title: cellInfo.title,
             subtitle: cellInfo.subtitle,
             isSelected: cellInfo.isSelected ?? false,
             indexPath: indexPath,
-            isSwitcher: cellConfig?.isSwitcher,
-            accessoryType: cellConfig?.accessoryType
+            isSwitcher: provider?.cellConfig?.isSwitcher,
+            accessoryType: provider?.cellConfig?.accessoryType
         ))
     }
 }
