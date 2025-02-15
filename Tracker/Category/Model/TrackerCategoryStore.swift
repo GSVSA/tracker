@@ -3,9 +3,9 @@ import UIKit
 
 protocol TrackerCategoryStoreProtocol {
     var managedObjectContext: NSManagedObjectContext? { get }
-    func add(_ record: CategoryProtocol)
-    func update(_ record: NSManagedObject, _ tracker: CategoryProtocol)
-    func delete(_ record: NSManagedObject)
+    func add(_ category: CategoryProtocol)
+    func update(_ entity: NSManagedObject, _ category: CategoryProtocol)
+    func delete(_ entity: NSManagedObject)
 }
 
 final class TrackerCategoryStore {
@@ -33,20 +33,20 @@ extension TrackerCategoryStore: TrackerCategoryStoreProtocol {
         context
     }
 
-    func add(_ record: CategoryProtocol) {
+    func add(_ category: CategoryProtocol) {
         let entity = CategoryCoreData(context: context)
-        entity.title = record.title
+        entity.title = category.title
         saveContext()
     }
 
-    func update(_ record: NSManagedObject, _ category: CategoryProtocol) {
-        let entity = record as? CategoryCoreData
+    func update(_ entity: NSManagedObject, _ category: CategoryProtocol) {
+        let entity = entity as? CategoryCoreData
         entity?.title = category.title
         saveContext()
     }
 
-    func delete(_ record: NSManagedObject) {
-        context.delete(record)
+    func delete(_ entity: NSManagedObject) {
+        context.delete(entity)
         saveContext()
     }
 }

@@ -10,7 +10,8 @@ final class CategoryViewController: UIViewController {
         let store = TrackerCategoryStore()
         do {
             try categoryProvider = CategoryProvider(store)
-            categoryProvider?.delegate = self
+            categoryProvider?.didUpdate = didUpdate
+            categoryProvider?.didNumberOfRowsUpdate = didNumberOfRowsUpdate
             return categoryProvider
         } catch {
             return nil
@@ -18,8 +19,9 @@ final class CategoryViewController: UIViewController {
     }()
 
     private lazy var tableProvider: CategoryTableProvider = {
-        let provider = CategoryTableProvider(categoryProvider: categoryProvider)
-        return provider
+        let tableProvider = CategoryTableProvider(categoryProvider: categoryProvider)
+        tableProvider.navigateToEdition = navigateToEdition
+        return tableProvider
     }()
 
     private lazy var emptyBlock: EmptyBlock = {
@@ -41,7 +43,6 @@ final class CategoryViewController: UIViewController {
         configureNavBar()
         tableView.configure(provider: tableProvider, cell: SettingsCell.self)
         tableView.delegate = self
-        setEmptyBlockVisible(tableProvider.numberOfSections == 0)
         setupConstraints()
     }
 
@@ -58,14 +59,6 @@ final class CategoryViewController: UIViewController {
         tableHeightConstraint.constant = tableView.contentSize.height
     }
 
-    @objc
-    private func didAddCategoryTapped() {
-        let viewController = NewCategoryViewController()
-        viewController.delegate = self
-        let navigationController = UINavigationController(rootViewController: viewController)
-        present(navigationController, animated: true)
-    }
-
     private func configureNavBar() {
         navigationItem.title = "Категория"
         navigationController?.navigationBar.titleTextAttributes = [
@@ -73,8 +66,31 @@ final class CategoryViewController: UIViewController {
         ]
     }
 
-    private func setEmptyBlockVisible(_ isVisible: Bool) {
-        emptyBlock.isHidden = !isVisible
+    private func navigateToEdition(indexPath: IndexPath?, categoryTitle: String?) {
+        let viewController = NewCategoryViewController()
+        viewController.delegate = self
+        viewController.setCategoryTitle(categoryTitle)
+        viewController.setIndexPath(indexPath)
+        let navigationController = UINavigationController(rootViewController: viewController)
+        present(navigationController, animated: true)
+    }
+
+    @objc
+    private func didAddCategoryTapped() {
+        navigateToEdition(indexPath: nil, categoryTitle: nil)
+    }
+
+    private func didUpdate(_ update: CategoryStoreUpdate) {
+        tableView.performBatchUpdates {
+            tableView.insertRows(at: Array(update.insertedIndexes), with: .automatic)
+            tableView.reloadRows(at: Array(update.updatedIndexes), with: .automatic)
+            tableView.deleteRows(at: Array(update.deletedIndexes), with: .fade)
+        }
+        reloadHeightConstraints()
+    }
+
+    private func didNumberOfRowsUpdate(_ numberOfRows: Int) {
+        emptyBlock.isHidden = numberOfRows != 0
     }
 
     private func setupConstraints() {
@@ -108,7 +124,7 @@ extension CategoryViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let category = tableProvider.find(at: indexPath)
         delegate?.didComplete(with: category?.title)
-        setSelectedCategory(category?.title)
+        tableProvider.setSelectedCategory(category?.title)
         dismiss(animated: true)
     }
 
@@ -119,28 +135,13 @@ extension CategoryViewController: UITableViewDelegate {
         return UIContextMenuConfiguration(actionProvider: { _ in
             return UIMenu(children: [
                 UIAction(title: "Редактировать") { [weak self] _ in
-                    self?.edit(indexPath: indexPath)
+                    self?.tableProvider.edit(indexPath: indexPath)
                 },
                 UIAction(title: "Удалить", attributes: .destructive) { [weak self] _ in
-                    self?.delete(indexPath: indexPath)
+                    self?.tableProvider.delete(indexPath: indexPath)
                 },
             ])
         })
-    }
-
-    private func edit(indexPath: IndexPath) {
-        guard let categoryTitle = tableProvider.find(at: indexPath)?.title else { return }
-
-        let viewController = NewCategoryViewController()
-        viewController.delegate = self
-        viewController.setCategoryTitle(categoryTitle)
-        viewController.setIndexPath(indexPath)
-        let navigationController = UINavigationController(rootViewController: viewController)
-        present(navigationController, animated: true)
-    }
-
-    private func delete(indexPath: IndexPath) {
-        categoryProvider?.deleteRecord(at: indexPath)
     }
 }
 
@@ -148,24 +149,6 @@ extension CategoryViewController: UITableViewDelegate {
 
 extension CategoryViewController: NewCategoryViewControllerDelegate {
     func didCreateNewCategory(withName name: String, at indexPath: IndexPath?) {
-        let newCategory = Category(title: name)
-        guard let indexPath else {
-            categoryProvider?.addRecord(newCategory)
-            return
-        }
-        categoryProvider?.updateRecord(at: indexPath, newCategory)
-    }
-}
-
-// MARK: - CategoryProviderDelegate
-
-extension CategoryViewController: CategoryProviderDelegate {
-    func didUpdate(_ update: CategoryStoreUpdate) {
-        tableView.performBatchUpdates {
-            tableView.insertRows(at: Array(update.insertedIndexes), with: .automatic)
-            tableView.reloadRows(at: Array(update.updatedIndexes), with: .automatic)
-            tableView.deleteRows(at: Array(update.deletedIndexes), with: .fade)
-        }
-        reloadHeightConstraints()
+        tableProvider.addOrUpdateRecord(withName: name, at: indexPath)
     }
 }

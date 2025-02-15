@@ -7,8 +7,12 @@ final class OnboardingViewController: UIPageViewController {
         let pageControl = UIPageControl()
         pageControl.numberOfPages = pages.count
         pageControl.currentPage = 0
-        pageControl.currentPageIndicatorTintColor = .Theme.contrast
-        pageControl.pageIndicatorTintColor = .Theme.contrast.withAlphaComponent(0.3)
+        pageControl.currentPageIndicatorTintColor = getCurrentTheme() == .light
+            ? .Theme.contrast
+            : .Theme.background
+        pageControl.pageIndicatorTintColor = getCurrentTheme() == .light
+            ? .Theme.contrast.withAlphaComponent(0.3)
+            : .Theme.background.withAlphaComponent(0.3)
         pageControl.addTarget(self, action: #selector(didPageControlTap), for: .valueChanged)
         return pageControl
     }()
@@ -26,8 +30,7 @@ final class OnboardingViewController: UIPageViewController {
     private lazy var button: UIButton = {
         let button = Button()
         button.setTitle("Вот это технологии!", for: .normal)
-        let currentTheme = UIScreen.main.traitCollection.userInterfaceStyle
-        if currentTheme == .light {
+        if getCurrentTheme() == .light {
             button.setTitleColor(.Theme.background, for: .normal)
             button.backgroundColor = .Theme.contrast
         } else {

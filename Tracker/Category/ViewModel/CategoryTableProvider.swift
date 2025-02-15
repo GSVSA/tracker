@@ -1,4 +1,4 @@
-import UIKit
+import Foundation
 
 struct CategoryCellModel: SettingsTableItem {
     let title: String
@@ -14,6 +14,8 @@ struct CategoryCellModel: SettingsTableItem {
 
 final class CategoryTableProvider: SettingsTableProvider {
     var cellConfig: CellConfig?
+
+    var navigateToEdition: ((IndexPath, String) -> Void)?
 
     var numberOfSections: Int {
         categoryProvider?.numberOfSections ?? 0
@@ -40,5 +42,20 @@ final class CategoryTableProvider: SettingsTableProvider {
 
     func setSelectedCategory(_ selected: String?) {
         self.selected = selected
+    }
+
+    func addOrUpdateRecord(withName name: String, at indexPath: IndexPath?) {
+        setSelectedCategory(name)
+        categoryProvider?.addOrUpdateRecord(Category(title: name), at: indexPath)
+    }
+
+    func delete(indexPath: IndexPath) {
+        setSelectedCategory(nil)
+        categoryProvider?.deleteRecord(at: indexPath)
+    }
+
+    func edit(indexPath: IndexPath) {
+        guard let categoryTitle = find(at: indexPath)?.title else { return }
+        navigateToEdition?(indexPath, categoryTitle)
     }
 }

@@ -6,18 +6,16 @@ struct CategoryStoreUpdate {
     let updatedIndexes: Set<IndexPath>
 }
 
-protocol CategoryProviderDelegate: AnyObject {
-    func didUpdate(_ update: CategoryStoreUpdate)
-}
+typealias Binding<T> = (T) -> Void
 
 protocol CategoryProviderProtocol {
-    var delegate: CategoryProviderDelegate? { get set }
+    var didUpdate: Binding<CategoryStoreUpdate>? { get set }
+    var didNumberOfRowsUpdate: Binding<Int>? { get set }
     var numberOfSections: Int { get }
     func numberOfRowsInSection(_ section: Int) -> Int
     func find(at: IndexPath) -> CategoryCoreData
     func find(by category: CategoryProtocol) -> CategoryCoreData?
-    func addRecord(_ record: CategoryProtocol)
-    func updateRecord(at: IndexPath, _ record: CategoryProtocol)
+    func addOrUpdateRecord(_ record: CategoryProtocol, at indexPath: IndexPath?)
     func deleteRecord(at indexPath: IndexPath)
 }
 
@@ -26,7 +24,8 @@ final class CategoryProvider: NSObject {
         case failedToInitializeContext
     }
 
-    weak var delegate: CategoryProviderDelegate?
+    var didUpdate: Binding<CategoryStoreUpdate>?
+    var didNumberOfRowsUpdate: Binding<Int>?
 
     private let context: NSManagedObjectContext
     private let categoryStore: TrackerCategoryStoreProtocol
@@ -65,7 +64,9 @@ extension CategoryProvider: CategoryProviderProtocol {
     }
 
     func numberOfRowsInSection(_ section: Int) -> Int {
-        fetchedResultsController.sections?[section].numberOfObjects ?? 0
+        let numberOfRows = fetchedResultsController.sections?[section].numberOfObjects ?? 0
+        didNumberOfRowsUpdate?(numberOfRows)
+        return numberOfRows
     }
 
     func find(at indexPath: IndexPath) -> CategoryCoreData {
@@ -76,17 +77,16 @@ extension CategoryProvider: CategoryProviderProtocol {
         fetchedResultsController.fetchedObjects?.first(where: { $0.title == category.title })
     }
 
-    func addRecord(_ record: CategoryProtocol) {
-        let existedTitle = find(by: record)?.title
-        if existedTitle != nil {
+    func addOrUpdateRecord(_ record: CategoryProtocol, at indexPath: IndexPath? = nil) {
+        if find(by: record) != nil { return }
+
+        guard let indexPath else {
+            categoryStore.add(record)
             return
         }
-        categoryStore.add(record)
-    }
 
-    func updateRecord(at indexPath: IndexPath, _ record: CategoryProtocol) {
-        let entity = find(at: indexPath)
-        categoryStore.update(entity, record)
+        let existedEntity = find(at: indexPath)
+        categoryStore.update(existedEntity, record)
     }
 
     func deleteRecord(at indexPath: IndexPath) {
@@ -110,7 +110,7 @@ extension CategoryProvider: NSFetchedResultsControllerDelegate {
               let deletedIndexes
         else { return }
 
-        delegate?.didUpdate(CategoryStoreUpdate(
+        didUpdate?(CategoryStoreUpdate(
             insertedIndexes: insertedIndexes,
             deletedIndexes: deletedIndexes,
             updatedIndexes: updatedIndexes

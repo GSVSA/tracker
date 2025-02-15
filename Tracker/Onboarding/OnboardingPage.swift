@@ -19,8 +19,7 @@ final class OnboardingPage: UIViewController {
         let label = UILabel()
         label.textAlignment = .center
         label.numberOfLines = 2
-        let currentTheme = UIScreen.main.traitCollection.userInterfaceStyle
-        label.textColor = currentTheme == .light
+        label.textColor = getCurrentTheme() == .light
             ? .Theme.contrast
             : .Theme.background
         label.font = .systemFont(ofSize: 32, weight: .bold)
