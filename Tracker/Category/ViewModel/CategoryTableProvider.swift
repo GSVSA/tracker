@@ -15,47 +15,22 @@ struct CategoryCellModel: SettingsTableItem {
 final class CategoryTableProvider: SettingsTableProvider {
     var cellConfig: CellConfig?
 
-    var navigateToEdition: ((IndexPath, String) -> Void)?
-
     var numberOfSections: Int {
-        categoryProvider?.numberOfSections ?? 0
+        categoryViewModel.numberOfSections
     }
 
-    private(set) var selected: String?
-    private let categoryProvider: CategoryProviderProtocol?
+    private let categoryViewModel: CategoryViewModelProtocol
 
-    init(categoryProvider: CategoryProviderProtocol?) {
-        self.categoryProvider = categoryProvider
+    init(viewModel: CategoryViewModelProtocol) {
+        self.categoryViewModel = viewModel
     }
 
     func numberOfRowsInSection(_ section: Int) -> Int {
-        categoryProvider?.numberOfRowsInSection(section) ?? 0
+        categoryViewModel.numberOfRowsInSection(section)
     }
 
     func find(at indexPath: IndexPath) -> SettingsTableItem? {
-        guard let category = categoryProvider?.find(at: indexPath),
-              let title = category.title
-        else { return nil }
-
-        return CategoryCellModel(title: title, isSelected: selected == title)
-    }
-
-    func setSelectedCategory(_ selected: String?) {
-        self.selected = selected
-    }
-
-    func addOrUpdateRecord(withName name: String, at indexPath: IndexPath?) {
-        setSelectedCategory(name)
-        categoryProvider?.addOrUpdateRecord(Category(title: name), at: indexPath)
-    }
-
-    func delete(indexPath: IndexPath) {
-        setSelectedCategory(nil)
-        categoryProvider?.deleteRecord(at: indexPath)
-    }
-
-    func edit(indexPath: IndexPath) {
-        guard let categoryTitle = find(at: indexPath)?.title else { return }
-        navigateToEdition?(indexPath, categoryTitle)
+        guard let title = categoryViewModel.find(at: indexPath)?.title else { return nil }
+        return CategoryCellModel(title: title, isSelected: categoryViewModel.selected == title)
     }
 }

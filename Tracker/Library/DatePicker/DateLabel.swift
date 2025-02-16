@@ -48,7 +48,7 @@ final class DateLabel: UILabel {
 
     private func setupLabel() {
         textAlignment = .center
-        textColor = getCurrentTheme() == .light
+        textColor = ThemeManager.isLightMode
             ? .Theme.contrast
             : .Theme.background
         backgroundColor = .Theme.datePickerLabel

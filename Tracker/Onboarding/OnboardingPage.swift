@@ -1,39 +1,39 @@
 import UIKit
 
+protocol PageProtocol {
+    var image: UIImage? { get }
+    var title: String { get }
+}
+
 final class OnboardingPage: UIViewController {
-    private(set) var pageIndex: Int?
+    private let page: PageProtocol
 
-    private let images = [
-        UIImage(named: "Onboarding_1"),
-        UIImage(named: "Onboarding_2"),
-    ]
-
-    private let titles: [String] = [
-        "Отслеживайте только то, что хотите",
-        "Даже если это  не литры воды и йога",
-    ]
-
-    private lazy var imageView = UIImageView()
+    private lazy var imageView = UIImageView(image: page.image)
 
     private lazy var label: UILabel = {
         let label = UILabel()
         label.textAlignment = .center
         label.numberOfLines = 2
-        label.textColor = getCurrentTheme() == .light
+        label.textColor = ThemeManager.isLightMode
             ? .Theme.contrast
             : .Theme.background
         label.font = .systemFont(ofSize: 32, weight: .bold)
+        label.text = page.title
         return label
     }()
 
+    init(page: PageProtocol) {
+        self.page = page
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupConstraints()
-    }
-
-    func setPageIndex(_ index: Int) {
-        imageView.image = images[index]
-        label.text = titles[index]
     }
 
     private func setupConstraints() {

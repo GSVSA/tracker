@@ -1,36 +1,43 @@
 import UIKit
 
+struct PageModel: PageProtocol {
+    let image: UIImage?
+    let title: String
+}
+
 final class OnboardingViewController: UIPageViewController {
+    var onFinish: (() -> Void)?
+
     private lazy var onboardingManager = OnboardingManager()
+
+    private let pageModels: [PageModel] = [
+        .init(image: UIImage(named: "Onboarding_1"), title: "Отслеживайте только то, что хотите"),
+        .init(image: UIImage(named: "Onboarding_2"), title: "Даже если это  не литры воды и йога"),
+    ]
 
     private lazy var pageControl: UIPageControl = {
         let pageControl = UIPageControl()
         pageControl.numberOfPages = pages.count
         pageControl.currentPage = 0
-        pageControl.currentPageIndicatorTintColor = getCurrentTheme() == .light
+
+        let accentColor: UIColor = ThemeManager.isLightMode
             ? .Theme.contrast
             : .Theme.background
-        pageControl.pageIndicatorTintColor = getCurrentTheme() == .light
-            ? .Theme.contrast.withAlphaComponent(0.3)
-            : .Theme.background.withAlphaComponent(0.3)
+        pageControl.currentPageIndicatorTintColor = accentColor
+        pageControl.pageIndicatorTintColor = accentColor.withAlphaComponent(0.3)
+
         pageControl.addTarget(self, action: #selector(didPageControlTap), for: .valueChanged)
         return pageControl
     }()
 
     private lazy var pages: [UIViewController] = {
-        let firstPage = OnboardingPage()
-        firstPage.setPageIndex(0);
-
-        let secondPage = OnboardingPage()
-        secondPage.setPageIndex(1);
-
-        return [firstPage, secondPage]
+        pageModels.map { OnboardingPage(page: $0) }
     }()
 
     private lazy var button: UIButton = {
         let button = Button()
         button.setTitle("Вот это технологии!", for: .normal)
-        if getCurrentTheme() == .light {
+        if ThemeManager.isLightMode {
             button.setTitleColor(.Theme.background, for: .normal)
             button.backgroundColor = .Theme.contrast
         } else {
@@ -56,8 +63,7 @@ final class OnboardingViewController: UIPageViewController {
     @objc
     private func didButtonTap() {
         onboardingManager.complete()
-        guard let window = UIApplication.shared.windows.first else { return }
-        window.rootViewController = TabBarController()
+        onFinish?()
     }
 
     @objc

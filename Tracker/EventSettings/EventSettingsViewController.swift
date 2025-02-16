@@ -223,8 +223,10 @@ extension EventSettingsViewController: UITableViewDelegate {
             scheduleVC.delegate = self
             scheduleVC.setSelectedDays(selectedDays)
         } else if let categoryVC = viewController as? CategoryViewController {
+            let viewModel = CategoryViewModel()
+            viewModel.selectCategory(selectedCategory)
+            categoryVC.initialize(viewModel: viewModel)
             categoryVC.delegate = self
-            categoryVC.setSelectedCategory(selectedCategory)
         }
 
         let navigationController = UINavigationController(rootViewController: viewController)
