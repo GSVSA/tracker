@@ -33,39 +33,9 @@ final class TrackersListViewController: UIViewController {
         }
     }()
 
-    private lazy var recordProvider: RecordProviderProtocol? = {
-        guard let trackerProvider else { return nil }
-        let store = TrackerRecordStore()
-        do {
-            try recordProvider = RecordProvider(store, trackerProvider)
-            return recordProvider
-        } catch {
-            showError("Данные недоступны.")
-            return nil
-        }
-    }()
-
-    private lazy var categoryProvider: CategoryProviderProtocol? = {
-        let store = TrackerCategoryStore()
-        do {
-            try categoryProvider = CategoryProvider(store)
-            return categoryProvider
-        } catch {
-            showError("Данные недоступны.")
-            return nil
-        }
-    }()
-
-    private lazy var scheduleProvider: ScheduleProviderProtocol? = {
-        let store = TrackerScheduleStore()
-        do {
-            try scheduleProvider = ScheduleProvider(store)
-            return scheduleProvider
-        } catch {
-            showError("Данные недоступны.")
-            return nil
-        }
-    }()
+    private lazy var recordModel = TrackerRecordStore()
+    private lazy var categoryModel = TrackerCategoryStore()
+    private lazy var scheduleModel = TrackerScheduleStore()
 
     private lazy var emptyBlock: EmptyBlock = {
         let block = EmptyBlock()
@@ -298,15 +268,16 @@ extension TrackersListViewController: TrackTrackerListCellDelegate {
         guard let date = filters.date else { return }
         let dateString = dateFormatter.string(from: date)
 
-        guard let records = trackerProvider?.find(by: id)?.records as? Set<RecordCoreData>
+        guard let tracker = trackerProvider?.find(by: id),
+              let records = tracker.records as? Set<RecordCoreData>
         else { return }
 
         guard let completedRecord = records.first(where: { $0.date == dateString }) else {
             let record = Record(date: dateString)
-            recordProvider?.addRecord(by: id, record)
+            recordModel.add(record, tracker)
             return
         }
-        recordProvider?.deleteRecord(completedRecord)
+        recordModel.delete(completedRecord)
     }
 }
 
@@ -317,9 +288,8 @@ extension TrackersListViewController: NewTrackerViewControllerDelegate {
         let schedule = Schedule(selectedDays: selectedDays.count > 0
             ? selectedDays.map { $0.rawValue }
             : nil)
-        guard let scheduleRecord = scheduleProvider?.addRecord(schedule),
-              let categoryRecord = categoryProvider?.find(by: category)
-        else { return }
+        let scheduleRecord = scheduleModel.add(schedule)
+        guard let categoryRecord = categoryModel.find(by: category) else { return }
         trackerProvider?.addRecord(tracker, category: categoryRecord, schedule: scheduleRecord)
     }
 }
