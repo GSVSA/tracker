@@ -100,11 +100,8 @@ final class TrackersListCell: UICollectionViewCell {
     }
 
     private func setCounter(_ schedule: Int) {
-        let singleDay = "день"
-        let someDays = "дня"
-        let pluralDays = "дней"
-        let pluralizedSchedule = pluralize(for: schedule, forms: (singleDay, someDays, pluralDays))
-        counterLabel.text = "\(schedule) \(pluralizedSchedule)"
+        let localizedString = NSLocalizedString("countDays", comment: "Количество дней отображаемое в трекере")
+        counterLabel.text = String(format: localizedString, schedule)
     }
     
     private func setCompleted(_ completed: Bool) {

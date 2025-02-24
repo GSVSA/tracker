@@ -16,7 +16,7 @@ final class DateLabel: UILabel {
 
     private var dateFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd.MM.yy"
+        dateFormatter.dateStyle = .short
         return dateFormatter
     }()
 

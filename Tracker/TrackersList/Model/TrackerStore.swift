@@ -3,6 +3,9 @@ import UIKit
 
 protocol TrackerStoreProtocol {
     var managedObjectContext: NSManagedObjectContext? { get }
+    var list: [TrackerCoreData] { get }
+    func list(by predicate: NSPredicate) -> [TrackerCoreData]
+    func find(by id: UUID) -> TrackerCoreData?
     func add(_ record: TrackerProtocol, category: CategoryCoreData, schedule: ScheduleCoreData)
     func update(_ record: NSManagedObject, _ tracker: TrackerProtocol)
     func delete(_ record: NSManagedObject)
@@ -31,6 +34,29 @@ final class TrackerStore {
 extension TrackerStore: TrackerStoreProtocol {
     var managedObjectContext: NSManagedObjectContext? {
         context
+    }
+
+    var list: [TrackerCoreData] {
+        let fetchRequest: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
+        do {
+            return try context.fetch(fetchRequest)
+        } catch {
+            return []
+        }
+    }
+
+    func list(by predicate: NSPredicate) -> [TrackerCoreData] {
+        let fetchRequest: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
+        fetchRequest.predicate = predicate
+        do {
+            return try context.fetch(fetchRequest)
+        } catch {
+            return []
+        }
+    }
+
+    func find(by id: UUID) -> TrackerCoreData? {
+        list.first(where: { $0.id == id })
     }
 
     func add(_ record: TrackerProtocol, category: CategoryCoreData, schedule: ScheduleCoreData) {
