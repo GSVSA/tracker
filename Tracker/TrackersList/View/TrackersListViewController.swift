@@ -58,6 +58,9 @@ final class TrackersListViewController: UIViewController {
         viewModel?.didNumberOfRowsUpdate = { [weak self] numberOfRows in
             self?.didNumberOfRowsUpdate(numberOfRows)
         }
+        viewModel?.navigateToEdition = { [weak self] trackerInfo in
+            self?.navigateToEdition(with: trackerInfo)
+        }
     }
 
     private func setupCollection() {
@@ -94,7 +97,9 @@ final class TrackersListViewController: UIViewController {
     @objc
     private func didNewTrackerTap() {
         let view = NewTrackerViewController()
-        view.delegate = self
+        view.didAddTracker = { [weak self] trackerInfo in
+            self?.viewModel?.add(trackerInfo)
+        }
         let navController = UINavigationController(rootViewController: view)
         self.present(navController, animated: true)
     }
@@ -125,6 +130,18 @@ final class TrackersListViewController: UIViewController {
             filtersModel?.setDate(newDate)
         }
         viewModel?.filter()
+    }
+
+    private func navigateToEdition(with trackerInfo: TrackerInfo) {
+        let view = EventSettingsViewController()
+        let isIrregular = trackerInfo.selectedDays.count == 0
+        view.initialize(isIrregular: isIrregular, trackerInfo: trackerInfo)
+        view.didComplete = { [weak self] vc, trackerInfo in
+            self?.viewModel?.update(trackerInfo)
+            vc.dismiss(animated: true)
+        }
+        let navController = UINavigationController(rootViewController: view)
+        present(navController, animated: true)
     }
 
     private func didNumberOfRowsUpdate(_ numberOfRows: Int) {
@@ -255,18 +272,58 @@ extension TrackersListViewController: UICollectionViewDataSource {
     }
 }
 
+extension TrackersListViewController: UICollectionViewDelegate {
+    func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let indexPath = indexPaths.first,
+              let tracker = viewModel?.find(at: indexPath)
+        else { return nil }
+        let pinOptionLabel = tracker.pinned
+            ? NSLocalizedString("unpin", comment: "")
+            : NSLocalizedString("pin", comment: "")
+
+        return UIContextMenuConfiguration(actionProvider: { _ in
+            return UIMenu(children: [
+                UIAction(title: pinOptionLabel) { [weak self] _ in
+                    self?.viewModel?.togglePinned(at: indexPath)
+                },
+                UIAction(title: NSLocalizedString("edit", comment: "")) { [weak self] _ in
+                    self?.viewModel?.edit(at: indexPath)
+                },
+                UIAction(title: NSLocalizedString("delete", comment: ""), attributes: .destructive) { [weak self] _ in
+                    self?.showDeleteConfirmationAlert(at: indexPath)
+                },
+            ])
+        })
+    }
+
+    private func showDeleteConfirmationAlert(at indexPath: IndexPath) {
+        let alertController = UIAlertController(
+            title: nil,
+            message: NSLocalizedString("trackerDeleteConfirmDescription", comment: ""),
+            preferredStyle: .actionSheet
+        )
+
+        let deleteAction = UIAlertAction(title: NSLocalizedString("delete", comment: ""), style: .destructive) { [weak self] _ in
+            self?.viewModel?.delete(at: indexPath)
+        }
+
+        let cancelAction = UIAlertAction(title: NSLocalizedString("cancel", comment: ""), style: .cancel)
+
+        alertController.addAction(deleteAction)
+        alertController.addAction(cancelAction)
+
+        present(alertController, animated: true)
+    }
+}
+
 // MARK: - TrackTrackerListCellDelegate
 
 extension TrackersListViewController: TrackTrackerListCellDelegate {
     func didTapCounter(at id: UUID) {
         viewModel?.updateCounter(at: id)
-    }
-}
-
-// MARK: - NewTrackerViewControllerDelegate
-
-extension TrackersListViewController: NewTrackerViewControllerDelegate {
-    func didAddTracker(_ vc: NewTrackerViewController, tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol) {
-        viewModel?.add(tracker: tracker, selectedDays: selectedDays, category: category)
     }
 }

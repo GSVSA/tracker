@@ -53,7 +53,29 @@ final class FiltersPredicateBuilder {
                 format: "%K == nil",
                 #keyPath(TrackerCoreData.schedule.selectedDays)
             )
-            return NSCompoundPredicate(type: .or, subpredicates: [isIrregular, isCurrentDate])
+            return or([isIrregular, isCurrentDate])
         }
+    }
+
+    func build(filters: Filters, withPinned: Bool) -> NSPredicate? {
+        guard let predicate = build(filters: filters) else { return nil }
+
+        return and(subpredicates: [predicate, pinned(withPinned)])
+    }
+
+    func pinned(_ state: Bool = true) -> NSPredicate {
+        return NSPredicate(format: "%K == \(state)", #keyPath(TrackerCoreData.pinned))
+    }
+
+    func and(subpredicates: [NSPredicate]) -> NSPredicate {
+        return NSCompoundPredicate(type: .and, subpredicates: subpredicates)
+    }
+
+    func or(_ subpredicates: [NSPredicate]) -> NSPredicate {
+        return NSCompoundPredicate(type: .or, subpredicates: subpredicates)
+    }
+
+    func not(_ subpredicates: [NSPredicate]) -> NSPredicate {
+        return NSCompoundPredicate(type: .not, subpredicates: subpredicates)
     }
 }

@@ -1,17 +1,22 @@
 import CoreData
 
+struct SectionInfo {
+    let title: String
+    let numberOfObjects: Int
+    let objects: [TrackerCoreData]
+}
+
 protocol TrackerProviderProtocol {
     var didUpdate: (() -> Void)? { get set }
     var listByDate: [TrackerCoreData] { get }
-    var numberOfSections: Int { get }
-    func numberOfRowsInSection(_ section: Int) -> Int
-    func getSection(_ section: Int) -> NSFetchedResultsSectionInfo?
-    func find(at: IndexPath) -> TrackerCoreData
+    var sections: [SectionInfo] { get }
+    func find(at: IndexPath) -> TrackerCoreData?
     func find(by id: UUID) -> TrackerCoreData?
     func filter(_ filters: Filters)
-    func addRecord(_ record: TrackerProtocol, category categoryRecord: CategoryCoreData, schedule scheduleRecord: ScheduleCoreData)
-    func updateRecord(at: IndexPath, _ record: TrackerProtocol)
+    func addRecord(_ record: TrackerProtocol, category: CategoryCoreData, schedule: ScheduleCoreData)
+    func updateRecord(by: UUID, _ record: TrackerProtocol, category: CategoryCoreData, schedule: ScheduleCoreData)
     func deleteRecord(at indexPath: IndexPath)
+    func setPinned(by id: UUID, _ pinned: Bool)
 }
 
 final class TrackerProvider: NSObject {
@@ -28,7 +33,7 @@ final class TrackerProvider: NSObject {
 
     private var predicate: NSPredicate? {
         guard let filters = filters else { return nil }
-        return predicateBuilder.build(filters: filters)
+        return predicateBuilder.build(filters: filters, withPinned: false)
     }
 
     private lazy var fetchedResultsController: NSFetchedResultsController<TrackerCoreData> = {
@@ -61,6 +66,20 @@ final class TrackerProvider: NSObject {
     private func performFetch() {
         try? fetchedResultsController.performFetch()
     }
+
+    private var listByPinned: [TrackerCoreData] {
+        let filters: Filters = .init(date: filters?.date, type: .all)
+        guard let predicate = predicateBuilder.build(filters: filters, withPinned: true) else { return [] }
+        return trackerStore.list(by: predicate)
+    }
+
+    private var pureSections: [SectionInfo] {
+        let sections = fetchedResultsController.sections ?? []
+        return sections.map { section in
+            let objects = section.objects as? [TrackerCoreData] ?? []
+            return SectionInfo(title: section.name, numberOfObjects: section.numberOfObjects, objects: objects)
+        }
+    }
 }
 
 // MARK: - DataProviderProtocol
@@ -72,12 +91,16 @@ extension TrackerProvider: TrackerProviderProtocol {
         return trackerStore.list(by: predicate)
     }
 
-    var numberOfSections: Int {
-        fetchedResultsController.sections?.count ?? 0
-    }
-
-    func numberOfRowsInSection(_ section: Int) -> Int {
-        fetchedResultsController.sections?[section].numberOfObjects ?? 0
+    var sections: [SectionInfo] {
+        if listByPinned.isEmpty {
+            return pureSections
+        }
+        let pinnedSection = SectionInfo(
+            title: NSLocalizedString("pinnedSectionLabel", comment: ""),
+            numberOfObjects: listByPinned.count,
+            objects: listByPinned
+        )
+        return [pinnedSection] + pureSections
     }
 
     func filter(_ filters: Filters) {
@@ -87,30 +110,41 @@ extension TrackerProvider: TrackerProviderProtocol {
         didUpdate?()
     }
 
-    func getSection(_ section: Int) -> NSFetchedResultsSectionInfo? {
-        fetchedResultsController.sections?[section]
-    }
-
-    func find(at indexPath: IndexPath) -> TrackerCoreData {
-        fetchedResultsController.object(at: indexPath)
+    func find(at indexPath: IndexPath) -> TrackerCoreData? {
+        sections[indexPath.section].objects[indexPath.item]
     }
 
     func find(by id: UUID) -> TrackerCoreData? {
         trackerStore.find(by: id)
     }
 
-    func addRecord(_ record: TrackerProtocol, category categoryRecord: CategoryCoreData, schedule scheduleRecord: ScheduleCoreData) {
-        trackerStore.add(record, category: categoryRecord, schedule: scheduleRecord)
+    func addRecord(_ record: TrackerProtocol, category: CategoryCoreData, schedule: ScheduleCoreData) {
+        trackerStore.add(record, category: category, schedule: schedule)
     }
 
-    func updateRecord(at indexPath: IndexPath, _ record: TrackerProtocol) {
-        let entity = find(at: indexPath)
-        trackerStore.update(entity, record)
+    func updateRecord(
+        by id: UUID,
+        _ record: TrackerProtocol,
+        category: CategoryCoreData,
+        schedule: ScheduleCoreData
+    ) {
+        guard let entity = find(by: id) else { return }
+        trackerStore.update(entity, record, category: category, schedule: schedule)
     }
 
     func deleteRecord(at indexPath: IndexPath) {
-        let record = find(at: indexPath)
+        guard let record = find(at: indexPath) else { return }
         trackerStore.delete(record)
+    }
+
+    func setPinned(by id: UUID, _ pinned: Bool) {
+        guard let entity = find(by: id) else { return }
+        trackerStore.setPinned(entity, pinned)
+    }
+
+    func setPinned(at indexPath: IndexPath, _ pinned: Bool) {
+        guard let entity = find(at: indexPath) else { return }
+        trackerStore.setPinned(entity, pinned)
     }
 }
 

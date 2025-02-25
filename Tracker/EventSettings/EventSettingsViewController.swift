@@ -1,7 +1,9 @@
 import UIKit
 
 final class EventSettingsViewController: UIViewController {
-    var delegate: EventSettingsViewControllerDelegate?
+    var didComplete: ((EventSettingsViewController, TrackerInfo) -> Void)?
+
+    private var initialTrackerInfo: TrackerInfo?
 
     private var trackerName: String {
         nameInput.textField?.text ?? ""
@@ -47,6 +49,13 @@ final class EventSettingsViewController: UIViewController {
         return view
     }()
 
+    private lazy var counterLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .Theme.contrast
+        label.font = .systemFont(ofSize: 32, weight: .bold)
+        return label
+    }()
+
     private lazy var nameInput: ValidationTextFieldWrapper = {
         let textField = TextField()
         textField.placeholder = "Введите название трекера"
@@ -80,7 +89,7 @@ final class EventSettingsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        configureNavBar()
+        setupNavBar()
         view.backgroundColor = .Theme.background
         tableView.configure(provider: tableProvider, cell: SettingsCell.self)
         tableView.delegate = self
@@ -98,16 +107,36 @@ final class EventSettingsViewController: UIViewController {
         tableHeightConstraint.constant = tableView.contentSize.height
     }
 
-    func setIsIrregular(_ isIrregular: Bool) {
+    func initialize(isIrregular: Bool, trackerInfo: TrackerInfo? = nil) {
         tableProvider.setIsIrregular(isIrregular)
+        setupInitialInfo(trackerInfo)
         updateData()
-        configureNavBar()
+        setupNavBar()
     }
 
-    private func configureNavBar() {
-        navigationItem.title = tableProvider.isIrregular 
-            ? "Новое нерегулярное событие"
-            : "Новая привычка"
+    private func setupInitialInfo(_ trackerInfo: TrackerInfo? = nil) {
+        initialTrackerInfo = trackerInfo
+
+        let recordsCount = trackerInfo?.recordsCount ?? 0
+        let localizedCount = NSLocalizedString("countDays", comment: "")
+        counterLabel.text = String(format: localizedCount, recordsCount)
+        counterLabel.isHidden = trackerInfo == nil
+
+        selectedDays = trackerInfo?.selectedDays ?? []
+        selectedCategory = trackerInfo?.category.title
+        nameInput.textField?.text = trackerInfo?.tracker.title
+        emojiCollection.selectedEmoji = trackerInfo?.tracker.emoji
+        colorsCollection.selectedColor = trackerInfo?.tracker.color
+    }
+
+    private func setupNavBar() {
+        if initialTrackerInfo != nil {
+            navigationItem.title = "Редактирование привычки"
+        } else if tableProvider.isIrregular {
+            navigationItem.title = "Новое нерегулярное событие"
+        } else {
+            navigationItem.title = "Новая привычка"
+        }
         navigationController?.navigationBar.titleTextAttributes = [
             .font: UIFont.systemFont(ofSize: 16, weight: .medium),
         ]
@@ -129,11 +158,18 @@ final class EventSettingsViewController: UIViewController {
         let tracker = Tracker(
             title: trackerName,
             color: selectedColor,
-            emoji: selectedEmoji
+            emoji: selectedEmoji,
+            pinned: initialTrackerInfo?.tracker.pinned ?? false
         )
 
         let category = Category(title: selectedCategory)
-        delegate?.didComplete(self, tracker: tracker, selectedDays: selectedDays, category: category)
+        let trackerInfo = TrackerInfo(
+            id: initialTrackerInfo?.id,
+            tracker: tracker,
+            selectedDays: selectedDays,
+            category: category
+        )
+        didComplete?(self, trackerInfo)
     }
 
     private func updateCreateButtonState() {
@@ -170,6 +206,7 @@ final class EventSettingsViewController: UIViewController {
         contentView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentView)
         [
+            counterLabel,
             nameInput,
             tableView,
             emojiCollection,
@@ -178,6 +215,13 @@ final class EventSettingsViewController: UIViewController {
         ].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             contentView.addSubview($0)
+        }
+
+        if initialTrackerInfo != nil {
+            counterLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24).isActive = true
+            nameInput.topAnchor.constraint(equalTo: counterLabel.bottomAnchor, constant: 40).isActive = true
+        } else {
+            nameInput.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24).isActive = true
         }
 
         NSLayoutConstraint.activate([
@@ -192,7 +236,7 @@ final class EventSettingsViewController: UIViewController {
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
-            nameInput.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
+            counterLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
 
             tableView.topAnchor.constraint(equalTo: nameInput.bottomAnchor, constant: -19),
 

@@ -1,27 +1,46 @@
 import UIKit
 
-struct SectionInfo {
-    let title: String
+struct TrackerInfo {
+    let id: UUID?
+    let tracker: TrackerProtocol
+    let selectedDays: [Weekday]
+    let category: CategoryProtocol
+    let recordsCount: Int
+
+    init(id: UUID? = nil, tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol, recordsCount: Int = 0) {
+        self.id = id
+        self.tracker = tracker
+        self.selectedDays = selectedDays
+        self.category = category
+        self.recordsCount = recordsCount
+    }
 }
 
 protocol TrackersViewModelProtocol {
     var filtersModel: FiltersModelProtocol { get }
     var didUpdate: (() -> Void)? { get set }
     var didNumberOfRowsUpdate: Binding<Int>? { get set }
+    var navigateToEdition: ((TrackerInfo) -> Void)? { get set }
     var canBeFiltered: Bool { get }
     var numberOfSections: Int { get }
     func numberOfRowsInSection(_ section: Int) -> Int
+    func find(at indexPath: IndexPath) -> TrackerCoreData?
     func filter()
     func getSection(_ section: Int) -> SectionInfo?
     func getConfigCell(at indexPath: IndexPath) -> TrackersListCellModel?
     func updateCounter(at id: UUID)
-    func add(tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol)
+    func add(_ trackerInfo: TrackerInfo)
+    func update(_ trackerInfo: TrackerInfo)
     func didDateChange(_ date: Date)
+    func edit(at indexPath: IndexPath)
+    func delete(at indexPath: IndexPath)
+    func togglePinned(at indexPath: IndexPath)
 }
 
 final class TrackersViewModel {
     var didUpdate: (() -> Void)?
     var didNumberOfRowsUpdate: Binding<Int>?
+    var navigateToEdition: ((TrackerInfo) -> Void)?
 
     private(set) lazy var filtersModel: FiltersModelProtocol = FiltersStore()
     private lazy var trackersModel = TrackerStore()
@@ -53,10 +72,6 @@ final class TrackersViewModel {
         return inputDate > currentDate
     }
 
-    private func find(at indexPath: IndexPath) -> TrackerCoreData? {
-        trackerProvider?.find(at: indexPath)
-    }
-
     private func find(by id: UUID) -> TrackerCoreData? {
         trackerProvider?.find(by: id)
     }
@@ -68,13 +83,17 @@ extension TrackersViewModel: TrackersViewModelProtocol {
     }
 
     var numberOfSections: Int {
-        let numberOfSections = trackerProvider?.numberOfSections ?? 0
+        let numberOfSections = trackerProvider?.sections.count ?? 0
         didNumberOfRowsUpdate?(numberOfSections)
         return numberOfSections
     }
 
     func numberOfRowsInSection(_ section: Int) -> Int {
-        trackerProvider?.numberOfRowsInSection(section) ?? 0
+        trackerProvider?.sections[section].numberOfObjects ?? 0
+    }
+
+    func find(at indexPath: IndexPath) -> TrackerCoreData? {
+        trackerProvider?.find(at: indexPath)
     }
 
     func filter() {
@@ -82,8 +101,7 @@ extension TrackersViewModel: TrackersViewModelProtocol {
     }
 
     func getSection(_ section: Int) -> SectionInfo? {
-        guard let section = trackerProvider?.getSection(section) else { return nil }
-        return .init(title: section.name)
+        trackerProvider?.sections[section]
     }
 
     func getConfigCell(at indexPath: IndexPath) -> TrackersListCellModel? {
@@ -108,7 +126,8 @@ extension TrackersViewModel: TrackersViewModelProtocol {
             emoji: emoji,
             count: completed.count,
             completed: todayCompleted.count > 0,
-            disabled: dateIsFuture
+            disabled: dateIsFuture,
+            pinned: tracker.pinned
         )
     }
 
@@ -128,17 +147,86 @@ extension TrackersViewModel: TrackersViewModelProtocol {
         recordModel.delete(completedRecord)
     }
 
-    func add(tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol) {
+    func add(_ trackerInfo: TrackerInfo) {
+        let tracker = trackerInfo.tracker
+        let category = trackerInfo.category
+        guard let categoryRecord = categoryModel.find(by: category) else { return }
+        let selectedDays = trackerInfo.selectedDays
         let schedule = Schedule(selectedDays: selectedDays.count > 0
             ? selectedDays.map { $0.rawValue }
             : nil)
         let scheduleRecord = scheduleModel.add(schedule)
-        guard let categoryRecord = categoryModel.find(by: category) else { return }
         trackerProvider?.addRecord(tracker, category: categoryRecord, schedule: scheduleRecord)
+    }
+
+    func update(_ trackerInfo: TrackerInfo) {
+        let category = trackerInfo.category
+
+        guard let trackerId = trackerInfo.id,
+              let trackerRecord = find(by: trackerId),
+              let categoryRecord = categoryModel.find(by: category)
+        else { return }
+
+        let tracker = trackerInfo.tracker
+        let selectedDays = trackerInfo.selectedDays
+        let schedule = Schedule(selectedDays: selectedDays.count > 0
+            ? selectedDays.map { $0.rawValue }
+            : nil)
+        let scheduleRecord = trackerRecord.schedule ?? scheduleModel.add(schedule)
+        scheduleModel.update(scheduleRecord, schedule)
+
+        trackerProvider?.updateRecord(
+            by: trackerId,
+            tracker,
+            category: categoryRecord,
+            schedule: scheduleRecord
+        )
     }
 
     func didDateChange(_ date: Date) {
         filtersModel.setDate(date)
         filter()
+    }
+
+    func togglePinned(at indexPath: IndexPath) {
+        guard let trackerEntity = find(at: indexPath),
+              let trackerId = trackerEntity.id
+        else { return }
+        trackerProvider?.setPinned(by: trackerId, !trackerEntity.pinned)
+    }
+
+    func edit(at indexPath: IndexPath) {
+        guard let trackerEntity = find(at: indexPath),
+              let title = trackerEntity.title,
+              let color = trackerEntity.color as? UIColor,
+              let emoji = trackerEntity.emoji,
+              let id = trackerEntity.id,
+              let categoryTitle = trackerEntity.category?.title
+        else { return }
+        let tracker = Tracker(
+            title: title,
+            color: color,
+            emoji: emoji,
+            pinned: trackerEntity.pinned
+        )
+        let selectedDaysString = trackerEntity.schedule?.selectedDays as? [String]
+        let selectedDays = selectedDaysString?.count == 0
+            ? []
+            : selectedDaysString?.compactMap(Weekday.init(rawValue:)) ?? [];
+        let category = Category(title: categoryTitle)
+        let trackerInfo = TrackerInfo(
+            id: id,
+            tracker: tracker,
+            selectedDays: selectedDays,
+            category: category,
+            recordsCount: trackerEntity.records?.count ?? 0
+        )
+        navigateToEdition?(trackerInfo)
+    }
+
+    func delete(at indexPath: IndexPath) {
+        guard find(at: indexPath)?.id != nil else { return }
+        trackerProvider?.deleteRecord(at: indexPath)
+        didUpdate?()
     }
 }
