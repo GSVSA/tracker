@@ -1,6 +1,8 @@
 import UIKit
 
 final class TrackersListViewController: UIViewController {
+    private let analyticsService = AnalyticsService()
+
     private let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
 
     private let columnsCount: CGFloat = 2
@@ -45,6 +47,16 @@ final class TrackersListViewController: UIViewController {
         setupViewModel()
         setupCollection()
         setupConstraints()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        analyticsService.open()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        analyticsService.close()
     }
 
     func initialize(viewModel: TrackersViewModelProtocol) {
@@ -96,6 +108,7 @@ final class TrackersListViewController: UIViewController {
 
     @objc
     private func didNewTrackerTap() {
+        analyticsService.click(item: .add_track)
         let view = NewTrackerViewController()
         view.didAddTracker = { [weak self] trackerInfo in
             self?.viewModel?.add(trackerInfo)
@@ -106,6 +119,7 @@ final class TrackersListViewController: UIViewController {
 
     @objc
     private func didFiltersButtonTap() {
+        analyticsService.click(item: .filter)
         guard let filtersModel = filtersModel else { return }
         let viewModel = FiltersViewModel(model: filtersModel)
         let view = FiltersViewController()
@@ -291,9 +305,11 @@ extension TrackersListViewController: UICollectionViewDelegate {
                     self?.viewModel?.togglePinned(at: indexPath)
                 },
                 UIAction(title: NSLocalizedString("edit", comment: "")) { [weak self] _ in
+                    self?.analyticsService.click(item: .edit)
                     self?.viewModel?.edit(at: indexPath)
                 },
                 UIAction(title: NSLocalizedString("delete", comment: ""), attributes: .destructive) { [weak self] _ in
+                    self?.analyticsService.click(item: .delete)
                     self?.showDeleteConfirmationAlert(at: indexPath)
                 },
             ])
@@ -324,6 +340,7 @@ extension TrackersListViewController: UICollectionViewDelegate {
 
 extension TrackersListViewController: TrackTrackerListCellDelegate {
     func didTapCounter(at id: UUID) {
+        analyticsService.click(item: .track)
         viewModel?.updateCounter(at: id)
     }
 }
