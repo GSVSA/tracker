@@ -26,6 +26,7 @@ protocol TrackersViewModelProtocol {
     func numberOfRowsInSection(_ section: Int) -> Int
     func find(at indexPath: IndexPath) -> TrackerCoreData?
     func filter()
+    func search(_ text: String?)
     func getSection(_ section: Int) -> SectionInfo?
     func getConfigCell(at indexPath: IndexPath) -> TrackersListCellModel?
     func updateCounter(at id: UUID)
@@ -98,6 +99,10 @@ extension TrackersViewModel: TrackersViewModelProtocol {
 
     func filter() {
         trackerProvider?.filter(filtersModel.object)
+    }
+
+    func search(_ text: String?) {
+        trackerProvider?.filter(text)
     }
 
     func getSection(_ section: Int) -> SectionInfo? {

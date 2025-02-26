@@ -57,10 +57,22 @@ final class FiltersPredicateBuilder {
         }
     }
 
-    func build(filters: Filters, withPinned: Bool) -> NSPredicate? {
+    func build(filters: Filters, search: String? = nil, withPinned: Bool) -> NSPredicate? {
         guard let predicate = build(filters: filters) else { return nil }
 
-        return and(subpredicates: [predicate, pinned(withPinned)])
+        guard let search else {
+            return and(subpredicates: [predicate, pinned(withPinned)])
+        }
+
+        return and(subpredicates: [predicate, pinned(withPinned), searched(search)])
+    }
+
+    func searched(_ text: String) -> NSPredicate {
+        let lowercasedText = text.lowercased()
+        return NSPredicate(
+            format: "%K CONTAINS[cd] %@",
+            #keyPath(TrackerCoreData.title), lowercasedText
+        )
     }
 
     func pinned(_ state: Bool = true) -> NSPredicate {

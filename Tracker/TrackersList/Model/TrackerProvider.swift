@@ -13,6 +13,7 @@ protocol TrackerProviderProtocol {
     func find(at: IndexPath) -> TrackerCoreData?
     func find(by id: UUID) -> TrackerCoreData?
     func filter(_ filters: Filters)
+    func filter(_ search: String?)
     func addRecord(_ record: TrackerProtocol, category: CategoryCoreData, schedule: ScheduleCoreData)
     func updateRecord(by: UUID, _ record: TrackerProtocol, category: CategoryCoreData, schedule: ScheduleCoreData)
     func deleteRecord(at indexPath: IndexPath)
@@ -30,10 +31,11 @@ final class TrackerProvider: NSObject {
     private let predicateBuilder = FiltersPredicateBuilder()
     private let trackerStore: TrackerStoreProtocol
     private var filters: Filters?
+    private var searchString: String?
 
     private var predicate: NSPredicate? {
         guard let filters = filters else { return nil }
-        return predicateBuilder.build(filters: filters, withPinned: false)
+        return predicateBuilder.build(filters: filters, search: searchString, withPinned: false)
     }
 
     private lazy var fetchedResultsController: NSFetchedResultsController<TrackerCoreData> = {
@@ -105,6 +107,13 @@ extension TrackerProvider: TrackerProviderProtocol {
 
     func filter(_ filters: Filters) {
         self.filters = filters
+        fetchedResultsController.fetchRequest.predicate = predicate
+        performFetch()
+        didUpdate?()
+    }
+
+    func filter(_ search: String?) {
+        self.searchString = search
         fetchedResultsController.fetchRequest.predicate = predicate
         performFetch()
         didUpdate?()

@@ -41,7 +41,6 @@ final class AnalyticsService {
             print("DID FAIL REPORT EVENT: %@", name)
             print("REPORT ERROR: %@", error.localizedDescription)
         })
-        print("REPORT EVENT: \(name) with params: \(params)")
     }
 
     func report(_ event: AnalyticsServiceEvent) {

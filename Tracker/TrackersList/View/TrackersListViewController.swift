@@ -101,9 +101,11 @@ final class TrackersListViewController: UIViewController {
 
         navigationItem.title = NSLocalizedString("trackersTitle", comment: "Заголовок страницы со списком трекеров")
         navigationController?.navigationBar.prefersLargeTitles = true
-        
-        navigationItem.searchController = UISearchController()
-        navigationItem.searchController?.searchBar.placeholder = NSLocalizedString("searchInputPlaceholder", comment: "Плейсхолдер для поля поиска")
+
+        let searchController = UISearchController()
+        searchController.searchBar.placeholder = NSLocalizedString("searchInputPlaceholder", comment: "Плейсхолдер для поля поиска")
+        searchController.searchResultsUpdater = self
+        navigationItem.searchController = searchController
     }
 
     @objc
@@ -342,5 +344,15 @@ extension TrackersListViewController: TrackTrackerListCellDelegate {
     func didTapCounter(at id: UUID) {
         analyticsService.click(item: .track)
         viewModel?.updateCounter(at: id)
+    }
+}
+
+extension TrackersListViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        if let searchText = searchController.searchBar.text, !searchText.isEmpty {
+            viewModel?.search(searchText)
+        } else {
+            viewModel?.search(nil)
+        }
     }
 }
