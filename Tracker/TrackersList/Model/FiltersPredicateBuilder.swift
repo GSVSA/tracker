@@ -1,8 +1,6 @@
 import Foundation
 
 final class FiltersPredicateBuilder {
-    private let filters: Filters?
-
     private let filterDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd.MM.yy"
@@ -15,15 +13,6 @@ final class FiltersPredicateBuilder {
         formatter.dateFormat = "EEEE"
         return formatter
     }()
-
-    var predicate: NSPredicate? {
-        guard let filters = filters else { return nil }
-        return build(filters: filters)
-    }
-
-    init(filters: Filters? = nil) {
-        self.filters = filters
-    }
 
     func build(filters: Filters) -> NSPredicate? {
         guard let date = filters.date else { return nil }
@@ -53,7 +42,7 @@ final class FiltersPredicateBuilder {
                 format: "%K == nil",
                 #keyPath(TrackerCoreData.schedule.selectedDays)
             )
-            return or([isIrregular, isCurrentDate])
+            return or(isIrregular, isCurrentDate)
         }
     }
 
@@ -61,10 +50,10 @@ final class FiltersPredicateBuilder {
         guard let predicate = build(filters: filters) else { return nil }
 
         guard let search else {
-            return and(subpredicates: [predicate, pinned(withPinned)])
+            return and(predicate, pinned(withPinned))
         }
 
-        return and(subpredicates: [predicate, pinned(withPinned), searched(search)])
+        return and(predicate, pinned(withPinned), searched(search))
     }
 
     func searched(_ text: String) -> NSPredicate {
@@ -79,15 +68,15 @@ final class FiltersPredicateBuilder {
         return NSPredicate(format: "%K == \(state)", #keyPath(TrackerCoreData.pinned))
     }
 
-    func and(subpredicates: [NSPredicate]) -> NSPredicate {
+    func and(_ subpredicates: NSPredicate...) -> NSPredicate {
         return NSCompoundPredicate(type: .and, subpredicates: subpredicates)
     }
 
-    func or(_ subpredicates: [NSPredicate]) -> NSPredicate {
+    func or(_ subpredicates: NSPredicate...) -> NSPredicate {
         return NSCompoundPredicate(type: .or, subpredicates: subpredicates)
     }
 
-    func not(_ subpredicates: [NSPredicate]) -> NSPredicate {
+    func not(_ subpredicates: NSPredicate...) -> NSPredicate {
         return NSCompoundPredicate(type: .not, subpredicates: subpredicates)
     }
 }

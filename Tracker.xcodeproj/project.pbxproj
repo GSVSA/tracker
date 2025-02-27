@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		86CBCF6A4D8B4958327CDAD7 /* Pods_TrackerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F8FE5F3587E348EAF3C8AF7E /* Pods_TrackerTests.framework */; };
 		9BCFB37113A9400E4C22D3F4 /* Pods_Tracker.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA0D4CD17E1D9712329334F6 /* Pods_Tracker.framework */; };
+		A12E2F1C2D70E8E600108895 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = A12E2F1B2D70E8E600108895 /* InlineSnapshotTesting */; };
+		A12E2F1E2D70E8E600108895 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = A12E2F1D2D70E8E600108895 /* SnapshotTesting */; };
+		A12E2F202D70E8E600108895 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = A12E2F1F2D70E8E600108895 /* SnapshotTestingCustomDump */; };
 		A9FD45B99DF45F4C9DEE1B21 /* Pods_Tracker_TrackerUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 68743B78736373F3743C4BF9 /* Pods_Tracker_TrackerUITests.framework */; };
 /* End PBXBuildFile section */
 
@@ -88,6 +91,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A12E2F202D70E8E600108895 /* SnapshotTestingCustomDump in Frameworks */,
+				A12E2F1E2D70E8E600108895 /* SnapshotTesting in Frameworks */,
+				A12E2F1C2D70E8E600108895 /* InlineSnapshotTesting in Frameworks */,
 				86CBCF6A4D8B4958327CDAD7 /* Pods_TrackerTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -251,6 +257,9 @@
 			);
 			mainGroup = A183CA142D16FFE200588BBA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A12E2F1A2D70E8E600108895 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A183CA1E2D16FFE200588BBA /* Products */;
 			projectDirPath = "";
@@ -618,7 +627,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 423B5WM5D7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gsvsa.TrackerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -638,7 +647,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 423B5WM5D7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gsvsa.TrackerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -725,6 +734,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A12E2F1A2D70E8E600108895 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.18.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A12E2F1B2D70E8E600108895 /* InlineSnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A12E2F1A2D70E8E600108895 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = InlineSnapshotTesting;
+		};
+		A12E2F1D2D70E8E600108895 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A12E2F1A2D70E8E600108895 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+		A12E2F1F2D70E8E600108895 /* SnapshotTestingCustomDump */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A12E2F1A2D70E8E600108895 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTestingCustomDump;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A183CA152D16FFE200588BBA /* Project object */;
 }

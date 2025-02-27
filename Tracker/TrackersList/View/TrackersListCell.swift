@@ -54,7 +54,7 @@ final class TrackersListCell: UICollectionViewCell {
     private lazy var pinIcon: UIImageView = {
         let image = UIImage(systemName: "pin.fill")
         let imageView = UIImageView(image: image)
-        imageView.tintColor = ThemeManager.isLightMode ? .Theme.background : .Theme.contrast
+        imageView.tintColor = ThemeManager.themed(light: .Theme.background, dark: .Theme.contrast)
         return imageView
     }()
 

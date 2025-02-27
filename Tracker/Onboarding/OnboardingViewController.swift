@@ -20,9 +20,7 @@ final class OnboardingViewController: UIPageViewController {
         pageControl.numberOfPages = pages.count
         pageControl.currentPage = 0
 
-        let accentColor: UIColor = ThemeManager.isLightMode
-            ? .Theme.contrast
-            : .Theme.background
+        let accentColor: UIColor = ThemeManager.themed(light: .Theme.contrast, dark: .Theme.background)
         pageControl.currentPageIndicatorTintColor = accentColor
         pageControl.pageIndicatorTintColor = accentColor.withAlphaComponent(0.3)
 
@@ -37,13 +35,10 @@ final class OnboardingViewController: UIPageViewController {
     private lazy var button: UIButton = {
         let button = Button()
         button.setTitle("Вот это технологии!", for: .normal)
-        if ThemeManager.isLightMode {
-            button.setTitleColor(.Theme.background, for: .normal)
-            button.backgroundColor = .Theme.contrast
-        } else {
-            button.setTitleColor(.Theme.contrast, for: .normal)
-            button.backgroundColor = .Theme.background
-        }
+        let titleColor = ThemeManager.themed(light: .Theme.background, dark: .Theme.contrast)
+        let backgroundColor = ThemeManager.themed(light: .Theme.contrast, dark: .Theme.background)
+        button.setTitleColor(titleColor, for: .normal)
+        button.backgroundColor = backgroundColor
         button.addTarget(self, action: #selector(didButtonTap), for: .touchUpInside)
         return button
     }()

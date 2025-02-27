@@ -29,7 +29,7 @@ final class TrackersListViewController: UIViewController {
     private lazy var filtersButton: UIButton = {
         let button = UIButton()
         button.setTitle(NSLocalizedString("filtersLabel", comment: "Текст на кнопке фильтров"), for: .normal)
-        let titleColor: UIColor = ThemeManager.isLightMode ? .Theme.background : .Theme.contrast
+        let titleColor = ThemeManager.themed(light: .Theme.background, dark: .Theme.contrast)
         button.setTitleColor(titleColor, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 17)
         button.layer.cornerRadius = 16
