@@ -1,11 +1,7 @@
 import UIKit
 
-protocol NewTrackerViewControllerDelegate: AnyObject {
-    func didAddTracker(_ vc: NewTrackerViewController, tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol)
-}
-
 final class NewTrackerViewController: UIViewController {
-    weak var delegate: NewTrackerViewControllerDelegate?
+    var didAddTracker: ((TrackerInfo) -> Void)?
 
     private lazy var habitButton: Button = {
         let button = Button()
@@ -40,22 +36,30 @@ final class NewTrackerViewController: UIViewController {
         setupConstraints()
     }
 
-    @objc
-    private func didAddHabitTapped() {
+    private func navigateToSettings(isIrregular: Bool) {
         let view = EventSettingsViewController()
-        view.setIsIrregular(false)
-        view.delegate = self
+        view.initialize(isIrregular: isIrregular)
+        view.didComplete = { [weak self] vc, trackerInfo in
+            self?.didComplete(vc, trackerInfo: trackerInfo)
+        }
         let navController = UINavigationController(rootViewController: view)
         self.present(navController, animated: true)
     }
 
     @objc
+    private func didAddHabitTapped() {
+        navigateToSettings(isIrregular: false)
+    }
+
+    @objc
     private func didAddIrregularEventTapped() {
-        let view = EventSettingsViewController()
-        view.setIsIrregular(true)
-        view.delegate = self
-        let navController = UINavigationController(rootViewController: view)
-        self.present(navController, animated: true)
+        navigateToSettings(isIrregular: true)
+    }
+
+    private func didComplete(_ vc: EventSettingsViewController, trackerInfo: TrackerInfo) {
+        didAddTracker?(trackerInfo)
+        vc.dismiss(animated: true)
+        dismiss(animated: true)
     }
 
     private func setupConstraints() {
@@ -72,15 +76,5 @@ final class NewTrackerViewController: UIViewController {
             buttonsStack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             buttonsStack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
         ])
-    }
-}
-
-// MARK: - EventSettingsViewControllerDelegate
-
-extension NewTrackerViewController: EventSettingsViewControllerDelegate {
-    func didComplete(_ vc: EventSettingsViewController, tracker: TrackerProtocol, selectedDays: [Weekday], category: CategoryProtocol) {
-        delegate?.didAddTracker(self, tracker: tracker, selectedDays: selectedDays, category: category)
-        vc.dismiss(animated: true)
-        dismiss(animated: true)
     }
 }

@@ -8,6 +8,7 @@ struct TrackersListCellModel {
     let count: Int
     let completed: Bool
     let disabled: Bool
+    let pinned: Bool
 }
 
 final class TrackersListCell: UICollectionViewCell {
@@ -49,7 +50,14 @@ final class TrackersListCell: UICollectionViewCell {
         label.textColor = .Theme.contrast
         return label
     }()
-    
+
+    private lazy var pinIcon: UIImageView = {
+        let image = UIImage(systemName: "pin.fill")
+        let imageView = UIImageView(image: image)
+        imageView.tintColor = ThemeManager.themed(light: .Theme.background, dark: .Theme.contrast)
+        return imageView
+    }()
+
     private lazy var addButton: UIButton = {
         let button = UIButton()
         let image = UIImage(systemName: "plus")
@@ -80,6 +88,7 @@ final class TrackersListCell: UICollectionViewCell {
         setCounter(info.count)
         setCompleted(info.completed)
         setButtonDisabled(info.disabled)
+        setPinned(info.pinned)
     }
 
     private func setColor(_ color: UIColor) {
@@ -100,11 +109,8 @@ final class TrackersListCell: UICollectionViewCell {
     }
 
     private func setCounter(_ schedule: Int) {
-        let singleDay = "день"
-        let someDays = "дня"
-        let pluralDays = "дней"
-        let pluralizedSchedule = pluralize(for: schedule, forms: (singleDay, someDays, pluralDays))
-        counterLabel.text = "\(schedule) \(pluralizedSchedule)"
+        let localizedString = NSLocalizedString("countDays", comment: "Количество дней отображаемое в трекере")
+        counterLabel.text = String(format: localizedString, schedule)
     }
     
     private func setCompleted(_ completed: Bool) {
@@ -119,12 +125,17 @@ final class TrackersListCell: UICollectionViewCell {
     private func setButtonDisabled(_ disabled: Bool) {
         addButton.isEnabled = !disabled
     }
+
+    private func setPinned(_ pinned: Bool) {
+        pinIcon.isHidden = !pinned
+    }
     
     private func setupConstraints() {
         [
             containerBody,
             titleLabel,
             emojiLabel,
+            pinIcon,
             counterLabel,
             addButton,
         ].forEach {
@@ -143,7 +154,12 @@ final class TrackersListCell: UICollectionViewCell {
             emojiLabel.leadingAnchor.constraint(equalTo: containerBody.leadingAnchor, constant: 12),
             emojiLabel.widthAnchor.constraint(equalToConstant: 24),
             emojiLabel.heightAnchor.constraint(equalToConstant: 24),
-            
+
+            pinIcon.topAnchor.constraint(equalTo: containerBody.topAnchor, constant: 18),
+            pinIcon.trailingAnchor.constraint(equalTo: containerBody.trailingAnchor, constant: -12),
+            pinIcon.widthAnchor.constraint(equalToConstant: 12),
+            pinIcon.heightAnchor.constraint(equalToConstant: 12),
+
             titleLabel.leadingAnchor.constraint(equalTo: emojiLabel.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: containerBody.trailingAnchor, constant: -12),
             titleLabel.bottomAnchor.constraint(equalTo: containerBody.bottomAnchor, constant: -12),

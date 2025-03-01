@@ -20,6 +20,11 @@ final class DatePicker: UIDatePicker {
         setupConstraints()
     }
 
+    func setDate(_ date: Date) {
+        super.setDate(date, animated: false)
+        dateLabel.update(with: date)
+    }
+
     private func setupActions() {
         addTarget(self, action: #selector(datePickerChanged), for: .valueChanged)
     }
@@ -36,7 +41,7 @@ final class DatePicker: UIDatePicker {
 
         NSLayoutConstraint.activate([
             dateLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            dateLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            dateLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
     }
 }

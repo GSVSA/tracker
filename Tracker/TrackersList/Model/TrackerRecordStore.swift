@@ -3,6 +3,7 @@ import UIKit
 
 protocol TrackerRecordStoreProtocol {
     var managedObjectContext: NSManagedObjectContext? { get }
+    var list: [RecordCoreData] { get }
     func add(_ record: RecordProtocol, _ tracker: NSManagedObject)
     func delete(_ record: NSManagedObject)
 }
@@ -30,6 +31,15 @@ final class TrackerRecordStore {
 extension TrackerRecordStore: TrackerRecordStoreProtocol {
     var managedObjectContext: NSManagedObjectContext? {
         context
+    }
+
+    var list: [RecordCoreData] {
+        let fetchRequest: NSFetchRequest<RecordCoreData> = RecordCoreData.fetchRequest()
+        do {
+            return try context.fetch(fetchRequest)
+        } catch {
+            return []
+        }
     }
 
     func add(_ record: RecordProtocol, _ tracker: NSManagedObject) {

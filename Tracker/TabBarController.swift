@@ -21,18 +21,22 @@ final class TabBarController: UITabBarController {
     }
 
     private func setupTabItems() {
-        let trackersListViewController = TrackersListViewController()
-        let trackersNavigationController = UINavigationController(rootViewController: trackersListViewController)
+        let trackersViewModel = TrackersViewModel()
+        let trackersViewController = TrackersListViewController()
+        trackersViewController.initialize(viewModel: trackersViewModel)
+        let trackersNavigationController = UINavigationController(rootViewController: trackersViewController)
         trackersNavigationController.tabBarItem = UITabBarItem(
-            title: "Трекеры",
+            title: NSLocalizedString("trackersTitle", comment: "Название вкладки в навигации"),
             image: UIImage(named: "TrackersTabIcon"),
             selectedImage: nil
         )
         
         let statisticViewController = StatisticViewController()
+        let statisticViewModel = StatisticsViewModel()
+        statisticViewController.initialize(viewModel: statisticViewModel)
         let statisticNavigationController = UINavigationController(rootViewController: statisticViewController)
         statisticNavigationController.tabBarItem = UITabBarItem(
-            title: "Статистика",
+            title: NSLocalizedString("statisticsTitle", comment: "Название вкладки в навигации"),
             image: UIImage(named: "StatisticTabIcon"),
             selectedImage: nil
         )
